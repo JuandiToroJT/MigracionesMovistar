@@ -3,6 +3,7 @@ import { ConexionApiService } from '../shared/conexion-api.service';
 import { ActivatedRoute, Router } from '@angular/router';
 import { FormGroup } from '@angular/forms';
 import { HttpClient } from '@angular/common/http';
+import Swal from 'sweetalert2'
 
 @Component({
   selector: 'app-migra-automatico',
@@ -26,30 +27,51 @@ export class MigraAutomaticoComponent {
   }
 
   procesarMigracion() {
-    const url = 'http://localhost:3000/migraciones/1001/masiva'; // Ajusta el host si es necesario
+    const url = 'http://localhost:44394/migraciones/1001/masiva'; // Ajusta el host si es necesario
 
-    this.http.get(url).subscribe({
+    this.ConexionApiService.procesarMigracionMasiva().subscribe({
       next: (respuesta) => {
-        console.log('Migración procesada:', respuesta);
-        alert('Migración procesada correctamente.');
+        this.cargarListado()
+        Swal.fire({
+          icon: "success",
+          title: "✅ Migracion iniciada ",
+          //text: ".",
+        // footer: '<a href="#">Why do I have this issue?</a>'
+          timer: 2100,
+        });
       },
       error: (error) => {
-        console.error('Error en la migración:', error);
-        alert('Error al procesar la migración.');
+        Swal.fire({
+          icon: "error",
+          title: " ❌ ocurrio un error: "+ error.error.mensajeError,
+          //text: ".",
+        // footer: '<a href="#">Why do I have this issue?</a>'
+          timer: 2100,
+        });
       }
     });
   }
 
-    ngOnInit() {
-      this.ConexionApiService.obtenerProcesos().subscribe(
+  cargarListado(){
+    this.ConexionApiService.obtenerProcesos().subscribe(
         (data) => {
           this.listaProcesos = data;
           console.log("✅ lista de procesos - Datos cargados:");
           // console.log("✅ Datos cargados:", this.listaUsuarios);
         },
         (error) => {
-          console.error("❌ Error al cargar los datos:", error);
+          Swal.fire({
+          icon: "error",
+          title: " ❌ ocurrio un error: "+ error.error.mensajeError,
+          //text: ".",
+        // footer: '<a href="#">Why do I have this issue?</a>'
+          timer: 2100,
+        });
         }
       );
+  }
+
+    ngOnInit() {
+      this.cargarListado()
     }
   }

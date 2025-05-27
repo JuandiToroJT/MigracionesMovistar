@@ -22,4 +22,9 @@ export class ConexionApiService {
     return this.http.post<string>(`${this.BASE_URL_GET}/migraciones/${Migra_manual.identificacion}/manual`, Migra_manual)
      
   }
+
+  procesarMigracionMasiva() {
+    return this.http.post<string>(`${this.BASE_URL_GET}/migraciones/1001/masiva`, null)
+     
+  }
 }

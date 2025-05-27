@@ -5,6 +5,7 @@ import { LoginComponent } from './login/login.component';
 import { MigraAutomaticoComponent } from './migra-automatico/migra-automatico.component';
 
 const routes: Routes = [
+  { path: '', redirectTo: 'migra_automatico', pathMatch: 'full' },
     {path: 'Login', component: LoginComponent},
   {path: 'migra_manual', component: MigraManualComponent},
   { path: 'migra_automatico', component: MigraAutomaticoComponent },
