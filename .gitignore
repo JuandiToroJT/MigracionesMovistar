@@ -1,6 +1,10 @@
 # Ignorar carpetas bin y obj en cualquier lugar del proyecto
 **/bin/
 **/obj/
+**/node_modules/
+**/dist/
+**/.angular/cache/
+**/.angular/
 
 # --- FRONTEND (Angular) ---
 /frontend/node_modules/
