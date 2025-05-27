@@ -1,0 +1,12 @@
+{
+  "name": "migracionesmovistar",
+  "version": "1.0.0",
+  "description": "Este repositorio contiene el **código fuente completo** del sistema de migración de usuarios desde el operador **Movistar** hacia **Tigo** o **Claro**, desarrollado como parte de un sistema de soporte a procesos masivos de portabilidad.",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC"
+}
