@@ -8,6 +8,9 @@ import { MigraManualComponent } from './migra-manual/migra-manual.component';
 import { LoginComponent } from './login/login.component';
 import { MigraAutomaticoComponent } from './migra-automatico/migra-automatico.component';
 
+import { FormsModule, ReactiveFormsModule } from '@angular/forms';
+
+
 @NgModule({
   declarations: [
     AppComponent,
@@ -18,7 +21,9 @@ import { MigraAutomaticoComponent } from './migra-automatico/migra-automatico.co
   imports: [
     BrowserModule,
     AppRoutingModule,
-        HttpClientModule,
+    HttpClientModule,
+    ReactiveFormsModule  // ✅ Agrega esto
+
 
   ],
   providers: [
