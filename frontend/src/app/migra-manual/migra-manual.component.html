@@ -6,11 +6,11 @@
     <div class="container">
         <h2>Migracion manual de usuario</h2>
         <hr>
-        <form>
+        <form [formGroup]="formulario_migra_manual" (ngSubmit)="onSumit()">
             <div class="mb-3">
                 <label for="Numtel" class="form-label">Numero de telefono</label>
                 <div style="display: flex;">
-                    <input type="number" class="form-control" id="Numtel" aria-describedby="emailHelp">
+                    <input formControlName="txttel"  type="number" class="form-control" id="Numtel" aria-describedby="emailHelp" required>
                     <i class="bi bi-phone-flip" style="font-size: 2rem; color: black;"></i>
                 </div>
 
@@ -19,14 +19,14 @@
             <div class="mb-3">
                 <label for="numCuenta" class="form-label">Numero de cuenta</label>
                 <div style="display: flex;">
-                    <input type="text" class="form-control" id="numCuenta">
+                    <input formControlName="txtcuenta" type="text" class="form-control" id="numCuenta" required>
                     <i class="bi bi-postcard-fill" style="font-size: 2rem; color: black;"></i>
                 </div>
             </div>
             <div class="mb-3">
                 <label for="email" class="form-label">Correo Electronico</label>
                 <div style="display: flex;">
-                    <input type="email" class="form-control" id="email">
+                    <input formControlName="txtemail" type="email" class="form-control" id="email" required>
                     <i class="bi bi-voicemail" style="font-size: 2rem; color: black;"></i>
 
                 </div>
@@ -34,7 +34,7 @@
             <div class="mb-3">
                 <label for="CedulaTitular" class="form-label">Cedula del titular</label>
                 <div style="display: flex;">
-                    <input type="email" class="form-control" id="CedulaTitular">
+                    <input formControlName="txtcedula" type="number" class="form-control" id="CedulaTitular" required>
                     <i class="bi bi-person-vcard-fill" style="font-size: 2rem; color: black;"></i>
 
                 </div>

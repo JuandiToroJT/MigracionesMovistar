@@ -1,6 +1,7 @@
 import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Router } from '@angular/router';
+import { miagra_manualModel } from './migra_manual.model';
 
 
 @Injectable({
@@ -14,5 +15,11 @@ export class ConexionApiService {
 
    obtenerProcesos() {
     return this.http.get(this.BASE_URL_GET + '/migraciones/procesos');
+  }
+
+   agregarMigraManual(Migra_manual: miagra_manualModel) {
+    console.log("api",Migra_manual )
+    return this.http.post<string>(`${this.BASE_URL_GET}/migraciones/${Migra_manual.identificacion}/manual`, Migra_manual)
+     
   }
 }
