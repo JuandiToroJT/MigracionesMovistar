@@ -1,0 +1,124 @@
+.container-auto {
+  display: flex;
+  justify-content: space-evenly;
+  padding: 2rem;
+  font-family: Arial, sans-serif;
+}
+
+.panel, .admin-panel {
+  background: white;
+  border-radius: 10px;
+  padding: 2rem;
+  box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+  width: 58%;
+}
+
+
+
+.auto-migracion h2 {
+  margin-bottom: 1rem;
+  color: #333;
+}
+
+.file-upload {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  margin-bottom: 1.5rem;
+}
+
+.btn-upload {
+  background: rgb(238, 148, 31);;
+  border: none;
+  padding: 0.5rem 1rem;
+  color: white;
+  border-radius: 5px;
+}
+
+.tabla-estados {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 1rem;
+  background-color: #C9C6C6;
+  border: solid 1px black;
+}
+
+.tabla-estados th, .tabla-estados td {
+  border: 1px solid black;
+  padding: 0.5rem;
+  text-align: center;
+}
+
+.barra {
+  background: #e0e0e0;
+  height: 20px;
+  border-radius: 5px;
+  overflow: hidden;
+}
+
+.progreso {
+  height: 100%;
+}
+
+.progreso.cargado {
+  background: #4caf50;
+}
+
+.progreso.fallidas {
+  background: #f44336;
+}
+
+.progreso.realizadas {
+  background: #2196f3;
+}
+
+.paginacion {
+  margin-top: 1rem;
+  display: flex;
+  gap: 0.5rem;
+  justify-content: center;
+  font-weight: bold;
+}
+
+.btn-procesar {
+  background: rgb(238, 148, 31);;
+  color: white;
+  border: none;
+  padding: 0.7rem 2rem;
+  margin-top: 1rem;
+  font-size: 1rem;
+  border-radius: 5px;
+}
+
+.admin-panel {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: 38%;
+}
+
+.admin-panel h3 {
+  margin-bottom: 1rem;
+}
+
+.btn-ingresar {
+  background: rgb(238, 148, 31);;
+  color: white;
+  border: none;
+  padding: 1rem;
+  font-size: 1rem;
+  border-radius: 10px;
+  width: 180px;
+  text-align: center;
+  margin-bottom: 2rem;
+}
+
+.titleTable{
+    text-align: center;
+    font-size: larger;
+}
+.table-container{
+    background-color: #C9C6C6;
+    padding: 1% 3% 3% 3%;
+    border-radius: 10px;
+}

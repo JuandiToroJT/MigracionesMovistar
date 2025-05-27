@@ -6,12 +6,14 @@ import { AppRoutingModule } from './app-routing.module';
 import { AppComponent } from './app.component';
 import { MigraManualComponent } from './migra-manual/migra-manual.component';
 import { LoginComponent } from './login/login.component';
+import { MigraAutomaticoComponent } from './migra-automatico/migra-automatico.component';
 
 @NgModule({
   declarations: [
     AppComponent,
     MigraManualComponent,
-    LoginComponent
+    LoginComponent,
+    MigraAutomaticoComponent
   ],
   imports: [
     BrowserModule,

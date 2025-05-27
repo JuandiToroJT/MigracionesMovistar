@@ -1,0 +1,79 @@
+<body>
+    <div class="container-auto">
+        <div class="panel">
+            <div class="auto-migracion">
+                <h2>Migracion automática de Usuario</h2>
+                <p>
+                    Esta opción permite cargar un archivo de usuario <br>
+                    para ejecutar el proceso de migración automática.
+                </p>
+                <div class="file-upload">
+                    <button class="btn-procesar" (click)="procesarMigracion()">Procesar migración automática</button>
+                </div>
+
+
+                <h3 class="titleTable">Reporte de Estados</h3>
+                <div class="table-container">
+                    <table class="tabla-estados">
+                        <thead>
+                            <tr>
+                                <th>id</th>
+                                <th>estado</th>
+                                <th>total</th>
+                                <th>exitosos</th>
+                                <th>errores</th>
+                                <th>duplicados</th>
+                                <th>fecha</th>
+                                <th>Funciones</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr *ngFor=" let proceso of listaProcesos" class="row">
+                                <td class="col-sm-1"><i>{{proceso.idProceso}}</i></td>
+                                <td class="col-sm-1"><i>{{ proceso.estado}}</i></td>
+                                <td class="col-sm-1"><i>{{ proceso.total}}</i></td>
+                                <td class="col-sm-1"><i>{{ proceso.exitosos}}</i></td>
+                                <td class="col-sm-1"><i>{{ proceso.errores}}</i></td>
+                                <td class="col-sm-1"><i>{{ proceso.duplicados}}</i></td>
+                                <td class="col-sm-1"><i>{{ proceso.fecha}}</i></td>
+                                <td class="col-sm-1">
+                                    <fieldset class="form-group`col-sm-1">
+                                        <a class="btn btn-info"
+                                            [routerLink]="['/agregarUsuario/', proceso.estudianteid]">Editar</a>
+                                    </fieldset>
+                                </td>
+                                <td class="col-sm-1">
+                                    <fieldset class="form-group col-sm-1">
+                                        <a class="btn btn-danger">Borrar</a>
+                                    </fieldset>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+                <div class="paginacion">
+                    <span>&lt;</span>
+                    <span>1</span>
+                    <span>2</span>
+                    <span>3</span>
+                    <span>4</span>
+                    <span>5</span>
+                    <span>6</span>
+                    <span>&gt;</span>
+                </div>
+
+
+            </div>
+        </div>
+
+        <div class="admin-panel">
+            <h3>Panel de Administrador</h3>
+            <button class="btn-ingresar">
+                <i class="bi bi-journals"></i> <br>
+                Ingresar migración manual
+            </button>
+            <button class="bi bi-door-open-fill" style="font-size: 3rem;border-radius: 10px;"></button>
+            <img src="https://www.iconarchive.com/download/i98238/dakirby309/simply-styled/Control-Panel.ico" alt="">
+        </div>
+    </div>
+</body>
