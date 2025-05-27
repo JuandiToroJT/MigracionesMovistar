@@ -1,0 +1,93 @@
+
+<body>
+     <div id="exit">
+            <button class="bi bi-door-open-fill" style="font-size: 3rem;"></button>
+    </div>
+    <div class="container">
+        <h2>Migracion manual de usuario</h2>
+        <hr>
+        <form>
+            <div class="mb-3">
+                <label for="Numtel" class="form-label">Numero de telefono</label>
+                <div style="display: flex;">
+                    <input type="number" class="form-control" id="Numtel" aria-describedby="emailHelp">
+                    <i class="bi bi-phone-flip" style="font-size: 2rem; color: black;"></i>
+                </div>
+
+                <!-- <div id="emailHelp" class="form-text">We'll never share your email with anyone else.</div> -->
+            </div>
+            <div class="mb-3">
+                <label for="numCuenta" class="form-label">Numero de cuenta</label>
+                <div style="display: flex;">
+                    <input type="text" class="form-control" id="numCuenta">
+                    <i class="bi bi-postcard-fill" style="font-size: 2rem; color: black;"></i>
+                </div>
+            </div>
+            <div class="mb-3">
+                <label for="email" class="form-label">Correo Electronico</label>
+                <div style="display: flex;">
+                    <input type="email" class="form-control" id="email">
+                    <i class="bi bi-voicemail" style="font-size: 2rem; color: black;"></i>
+
+                </div>
+            </div>
+            <div class="mb-3">
+                <label for="CedulaTitular" class="form-label">Cedula del titular</label>
+                <div style="display: flex;">
+                    <input type="email" class="form-control" id="CedulaTitular">
+                    <i class="bi bi-person-vcard-fill" style="font-size: 2rem; color: black;"></i>
+
+                </div>
+            </div>
+            <br>
+            <!-- <div class="mb-3 form-check">
+                <input type="checkbox" class="form-check-input" id="exampleCheck1">
+                <label class="form-check-label" for="exampleCheck1">Check me out</label>
+            </div> -->
+            <button type="submit" class="btn btn-primary">Enviar Solicitud</button>
+        </form>
+    </div>
+   
+
+
+
+    <!-- 
+    <table class="table table-striped table-bordered" style="width: 85%; margin: auto;">
+                            <thead>
+                                <tr class="row">
+                                    <th class="col-sm-1">id</th>
+                                    <th class="col-sm-1">estado</th>
+                                    <th class="col-sm-1">total</th>
+                                    <th class="col-sm-1">exitosos</th>
+                                    <th class="col-sm-1">errores</th>
+                                    <th class="col-sm-1">duplicados</th>
+                                    <th class="col-sm-1">fecha</th>
+                                    <th class="col-sm-2">Funciones</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr *ngFor=" let proceso of listaProcesos"
+                                    class="row">
+                                    <td class="col-sm-1"><i>{{proceso.idProceso}}</i></td>
+                                    <td class="col-sm-1"><i>{{ proceso.estado}}</i></td>
+                                    <td class="col-sm-1"><i>{{ proceso.total}}</i></td>
+                                    <td class="col-sm-1"><i>{{ proceso.exitosos}}</i></td>
+                                    <td class="col-sm-1"><i>{{ proceso.errores}}</i></td>
+                                    <td class="col-sm-1"><i>{{ proceso.duplicados}}</i></td>
+                                    <td class="col-sm-1"><i>{{ proceso.fecha}}</i></td>
+                                    <td class="col-sm-1">
+                                        <fieldset class="form-group`col-sm-1">
+                                            <a class="btn btn-info"
+                                                [routerLink]="['/agregarUsuario/', proceso.estudianteid]">Editar</a>
+                                        </fieldset>
+                                    </td>
+                                    <td class="col-sm-1">
+                                        <fieldset class="form-group col-sm-1">
+                                            <a class="btn btn-danger"
+                                               >Borrar</a>
+                                        </fieldset>
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table> -->
+</body>

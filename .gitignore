@@ -1,0 +1,25 @@
+# --- FRONTEND (Angular) ---
+/frontend/node_modules/
+/frontend/dist/
+/frontend/.angular/cache/
+/frontend/.angular/
+
+# --- BACKEND (ASP.NET Core) ---
+/backend/bin/
+/backend/obj/
+/backend/.vs/
+
+# --- SCRIPTS ---
+*.bak
+*.sql~
+
+# --- General ---
+*.log
+*.tmp
+*.swp
+.DS_Store
+Thumbs.db
+
+# --- IDEs y herramientas ---
+.vscode/
+.idea/

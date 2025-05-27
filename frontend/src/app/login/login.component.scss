@@ -1,0 +1,47 @@
+body{   
+background-color: rgb(224, 220, 220) ;
+     height: 39rem;
+     padding: 35px;
+     position: relative;
+}
+h2{
+            font-family: 'Franklin Gothic Medium', 'Arial Narrow', Arial, sans-serif;
+
+}
+.container{
+    display: flex;
+}
+#textsesion{
+    background-color: rgb(228, 140, 25);
+    width: 100%;
+    text-align: center;
+    border-radius: 20px;
+}
+#login{
+    background-color: white;
+    width: 38rem;
+    height: 30rem;
+    border-radius: 20PX;
+   
+}
+form{
+    width: 70%;
+    margin: auto;
+}
+.container input{
+    background-color: rgb(216, 210, 210);
+}
+label{
+    font-family: 'Franklin Gothic Medium', 'Arial Narrow', Arial, sans-serif;
+    font-size: 20px;
+}
+img{
+    height: 85%;
+    border-radius: 10px;
+    margin-left: 30px;
+}
+button{
+        width: 60%;
+
+    background-color: rgb(238, 148, 31);
+}
