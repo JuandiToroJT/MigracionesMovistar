@@ -67,17 +67,20 @@ Sin usuario
 
 ### 🧠 Backend
 
+- Se debe tener instalado el framework .NET
 - Abrir la carpeta /backend/ con Visual Studio 2022.
 - Configurar la conexión en appsettings.json.
-- Ejecutar el proyecto. Swagger estará disponible en https://localhost:{puerto}/swagger.
+- Ejecutar el proyecto. Swagger estará disponible en https://localhost:44394/swagger.
 
 ### 🌐 Frontend
 
+- Se debe tener instalado Node.Js para el uso del npm
 - Abrir la carpeta /frontend/ con Visual Studio Code.
 - Ejecutar los siguientes comandos:
   - npm install
   - ng serve
-  - Acceder a la app desde http://localhost:{puerto}.
+  - Si da error el comando anterior ejecutar este **npm install -g @angular/cli** y luego volver a probar
+  - Acceder a la app desde http://localhost:4200.
 
 ---
 
