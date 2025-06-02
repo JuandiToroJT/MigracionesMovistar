@@ -2,7 +2,7 @@
     <div class="container">
         <div>
             <div id="textsesion">
-                <h2>Inisio sesion</h2>
+                <h2>Inicio sesión</h2>
             </div>
             <div id="login">
                 <form>
@@ -17,16 +17,16 @@
                         </div>
                     </div>
                     <div class="mb-3">
-                        <label for="pasword" class="form-label">Contrasena</label>
+                        <label for="pasword" class="form-label">Contraseña</label>
                         <div style="display: flex;">
-                            <input type="password" class="form-control" id="pasword" aria-describedby="emailHelp" placeholder="ingrese la contrassena">
+                            <input type="password" class="form-control" id="pasword" aria-describedby="emailHelp" placeholder="Ingrese la contraseña">
                             <i class="bi bi-shield-lock" style="font-size: 2rem; color: black;"></i>
                         </div>
                     </div>
                     <div style="text-align: center;">
-                    <a href="">Migracion manual de usuarios</a>
+                    <a [routerLink]="['/migra_manual']">Migracion manual de usuarios</a>
                     <br><br>
-                     <button type="submit" class="btn btn-primary">Ingresar</button>
+                     <button type="submit" class="btn btn-primary" [routerLink]="['/migra_automatico']">Ingresar</button>
                      </div>
                 </form>
             </div>
