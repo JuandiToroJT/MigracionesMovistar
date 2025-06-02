@@ -9,9 +9,9 @@ public partial class Operador
 
     public string? Nombre { get; set; }
 
-    public virtual ICollection<Detalle> DetalleIdOperadorDestinoNavigations { get; set; } = new List<Detalle>();
+    public virtual ICollection<Detalle>? DetalleIdOperadorDestinoNavigations { get; set; } = new List<Detalle>();
 
-    public virtual ICollection<Detalle> DetalleIdOperadorOrigenNavigations { get; set; } = new List<Detalle>();
+    public virtual ICollection<Detalle>? DetalleIdOperadorOrigenNavigations { get; set; } = new List<Detalle>();
 
-    public virtual ICollection<Servicio> Servicios { get; set; } = new List<Servicio>();
+    public virtual ICollection<Servicio>? Servicios { get; set; } = new List<Servicio>();
 }

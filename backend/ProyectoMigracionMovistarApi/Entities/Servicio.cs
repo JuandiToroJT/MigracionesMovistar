@@ -15,7 +15,7 @@ public partial class Servicio
 
     public int? IdOperador { get; set; }
 
-    public virtual ICollection<Cuenta> Cuenta { get; set; } = new List<Cuenta>();
+    public virtual ICollection<Cuenta>? Cuenta { get; set; } = new List<Cuenta>();
 
     public virtual Operador? IdOperadorNavigation { get; set; }
 }

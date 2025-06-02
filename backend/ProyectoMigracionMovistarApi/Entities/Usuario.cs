@@ -21,9 +21,9 @@ public partial class Usuario
 
     public string? Rol { get; set; }
 
-    public virtual ICollection<Auditoria> Auditoria { get; set; } = new List<Auditoria>();
+    public virtual ICollection<Auditoria>? Auditoria { get; set; } = new List<Auditoria>();
 
-    public virtual ICollection<Cuenta> Cuenta { get; set; } = new List<Cuenta>();
+    public virtual ICollection<Cuenta>? Cuenta { get; set; } = new List<Cuenta>();
 
-    public virtual ICollection<Proceso> Procesos { get; set; } = new List<Proceso>();
+    public virtual ICollection<Proceso>? Procesos { get; set; } = new List<Proceso>();
 }
