@@ -71,6 +71,11 @@ public partial class MigracionDbContext : DbContext
                 .IsUnicode(false)
                 .HasColumnName("numero_cuenta");
 
+            entity.Property(e => e.Migrada)
+                .HasMaxLength(1)
+                .IsUnicode(false)
+                .HasColumnName("migrada");
+
             entity.HasOne(d => d.IdServicioNavigation).WithMany(p => p.Cuenta)
                 .HasForeignKey(d => d.IdServicio)
                 .HasConstraintName("FK__CUENTA__id_servi__412EB0B6");
@@ -99,6 +104,21 @@ public partial class MigracionDbContext : DbContext
             entity.Property(e => e.IdOperadorDestino).HasColumnName("id_operador_destino");
             entity.Property(e => e.IdOperadorOrigen).HasColumnName("id_operador_origen");
             entity.Property(e => e.IdProceso).HasColumnName("id_proceso");
+
+            entity.Property(e => e.Notas)
+                .HasMaxLength(255)
+                .IsUnicode(false)
+                .HasColumnName("notas");
+
+            entity.Property(e => e.CodigoError)
+                .HasMaxLength(10)
+                .IsUnicode(false)
+                .HasColumnName("codigoError");
+
+            entity.Property(e => e.TipoProceso)
+                .HasMaxLength(9)
+                .IsUnicode(false)
+                .HasColumnName("tipoProceso");
 
             entity.HasOne(d => d.IdCuentaNavigation).WithMany(p => p.Detalles)
                 .HasForeignKey(d => d.IdCuenta)
@@ -154,6 +174,11 @@ public partial class MigracionDbContext : DbContext
                 .IsUnicode(false)
                 .HasColumnName("origen");
             entity.Property(e => e.TotalRegistros).HasColumnName("total_registros");
+
+            entity.Property(e => e.Notas)
+                .HasMaxLength(255)
+                .IsUnicode(false)
+                .HasColumnName("notas");
 
             entity.HasOne(d => d.IdUsuarioNavigation).WithMany(p => p.Procesos)
                 .HasForeignKey(d => d.IdUsuario)

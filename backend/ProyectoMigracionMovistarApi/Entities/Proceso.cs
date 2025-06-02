@@ -23,6 +23,8 @@ public partial class Proceso
 
     public int? IdUsuario { get; set; }
 
+    public string? Notas { get; set; }
+
     public virtual ICollection<Detalle>? Detalles { get; set; } = new List<Detalle>();
 
     public virtual Usuario? IdUsuarioNavigation { get; set; }

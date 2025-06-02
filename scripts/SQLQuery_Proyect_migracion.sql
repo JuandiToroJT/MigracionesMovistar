@@ -32,6 +32,7 @@ CREATE TABLE SERVICIO (
 CREATE TABLE CUENTA (
     id_cuenta INT IDENTITY(1,1) PRIMARY KEY,
     numero_cuenta VARCHAR(50),
+    migrada char(1) CHECK (migrada IN ('S', 'N')),
     id_usuario INT FOREIGN KEY REFERENCES USUARIO(id_usuario),
     id_servicio INT FOREIGN KEY REFERENCES SERVICIO(id_servicio)
 );
@@ -39,13 +40,14 @@ CREATE TABLE CUENTA (
 -- Tabla: PROCESO
 CREATE TABLE PROCESO (
     id_proceso INT IDENTITY(1,1) PRIMARY KEY,
-    origen VARCHAR(9) CHECK (origen  IN ('Migracion', 'Cargue')),
+    origen VARCHAR(9) CHECK (origen IN ('Migracion', 'Cargue')),
     estado_proceso varchar(3) CHECK (estado_proceso IN ('PRO', 'FIN', 'ERR')),
-    fecha DATETIME DEFAULT GETDATE(),  -- Fecha con hora por defecto actual
+    fecha DATETIME DEFAULT GETDATE(),
     total_registros INT,
     cantidad_exito INT,
     cantidad_error INT,
     cantidad_duplicado INT,
+    notas VARCHAR(255),
     id_usuario INT FOREIGN KEY REFERENCES USUARIO(id_usuario)
 );
 
@@ -54,6 +56,9 @@ CREATE TABLE DETALLE (
     id_detalle INT IDENTITY(1,1) PRIMARY KEY,
     fecha DATETIME DEFAULT GETDATE(),
     estado VARCHAR(3) CHECK (estado IN ('APL', 'ERR', 'DUP')),
+    tipoProceso VARCHAR(9) CHECK (tipoProceso IN ('Migracion', 'Cargue')),
+    notas varchar(255),
+    codigoError varchar(10),
     id_operador_destino INT NULL FOREIGN KEY REFERENCES OPERADOR(id_operador),
     id_operador_origen INT NULL FOREIGN KEY REFERENCES OPERADOR(id_operador),
     id_cuenta INT NULL FOREIGN KEY REFERENCES CUENTA(id_cuenta),
@@ -68,6 +73,3 @@ CREATE TABLE AUDITORIA (
     descripcion VARCHAR(255),
     id_usuario INT FOREIGN KEY REFERENCES USUARIO(id_usuario)
 );
-
-
---se modifico el script de la bd, para que los id sean autoincrementables

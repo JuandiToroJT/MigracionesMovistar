@@ -13,6 +13,8 @@ public partial class Cuenta
 
     public int? IdServicio { get; set; }
 
+    public string? Migrada { get; set; }
+
     public virtual ICollection<Detalle>? Detalles { get; set; } = new List<Detalle>();
 
     public virtual Servicio? IdServicioNavigation { get; set; }

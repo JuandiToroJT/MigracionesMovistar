@@ -11,6 +11,7 @@
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Http.Extensions;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
 using ProyectoMigracionMovistarApi.Attributes;
 using ProyectoMigracionMovistarApi.Bussines;
 using ProyectoMigracionMovistarApi.Entities;
@@ -28,32 +29,31 @@ namespace ProyectoMigracionMovistarApi.Controllers
     [ApiController]
     public class ProcesoApi : APIUtil
     {
-        private readonly MigracionDbContext _context;
-        private readonly IServiceProvider _serviceProvider;
-        public ProcesoApi(MigracionDbContext context, IServiceProvider serviceProvider)
+        private readonly IDbContextFactory<MigracionDbContext> _dbContextFactory;
+        public ProcesoApi(IDbContextFactory<MigracionDbContext> dbContextFactory)
         {
-            _context = context;
-            _serviceProvider = serviceProvider;
+            _dbContextFactory = dbContextFactory;
         }
 
         /// <summary>
-        /// Obtiene el listado de procesos de migración
+        /// Obtiene el listado de procesos realizados los cuales son migraciones y cargues
         /// </summary>
-        /// <remarks>Retorna todos los procesos de migración realizados, con su estado y métricas. </remarks>
+        /// <remarks>Retorna todos los procesos de migración y cargues realizados, con su estado y métricas. </remarks>
+        /// <param name="tipo">Tipo del proceso para filtrar por Migracion ó Cargue, si se envía vacío retorna todos</param>
         /// <response code="200">Lista de procesos</response>
         /// <response code="400">Error al recuperar la información</response>
         [HttpGet]
-        [Route("migraciones/procesos")]
+        [Route("procesos")]
         [ValidateModelState]
-        [SwaggerOperation("ObtenerProcesosMigracion")]
+        [SwaggerOperation("ObtenerProcesos")]
         [SwaggerResponse(statusCode: 200, type: typeof(List<ProcesoResumen>), description: "Lista de procesos")]
         [SwaggerResponse(statusCode: 400, type: typeof(MensajeErrorItem), description: "Error al recuperar la información")]
-        public virtual IActionResult ObtenerProcesosMigracion()
+        public virtual IActionResult ObtenerProcesos([FromQuery] string tipo = null)
         {
             try
             {
-                ProcesoBL reglasNegocio = new ProcesoBL(_context);
-                List<ProcesoResumen> respuesta = reglasNegocio.ObtenerProcesosMigracion();
+                ProcesoBL reglasNegocio = new ProcesoBL(_dbContextFactory);
+                List<ProcesoResumen> respuesta = reglasNegocio.ObtenerProcesos(tipo);
                 return new ObjectResult(respuesta);
             }
             catch (Exception ex)
@@ -80,7 +80,7 @@ namespace ProyectoMigracionMovistarApi.Controllers
         {
             try
             {
-                ProcesoBL reglasNegocio = new ProcesoBL(_context);
+                ProcesoBL reglasNegocio = new ProcesoBL(_dbContextFactory);
                 RespuestaTransaccion respuesta = reglasNegocio.RealizarMigracionManual(usuario, body);
                 respuesta.Url = new Uri(Request.GetDisplayUrl()).ToString();
                 return new ObjectResult(respuesta);
@@ -108,8 +108,8 @@ namespace ProyectoMigracionMovistarApi.Controllers
         {
             try
             {
-                ProcesoBL reglasNegocio = new ProcesoBL(_context);
-                RespuestaTransaccion respuesta = await reglasNegocio.RealizarMigracionMasiva(usuario, _serviceProvider);
+                ProcesoBL reglasNegocio = new ProcesoBL(_dbContextFactory);
+                RespuestaTransaccion respuesta = await reglasNegocio.RealizarMigracionMasiva(usuario);
                 respuesta.Url = new Uri(Request.GetDisplayUrl()).ToString();
                 return new ObjectResult(respuesta);
             }

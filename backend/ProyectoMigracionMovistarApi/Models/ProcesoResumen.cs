@@ -36,6 +36,14 @@ namespace ProyectoMigracionMovistarApi.Models
         public int? IdProceso { get; set; }
 
         /// <summary>
+        /// Tipo origen
+        /// </summary>
+        /// <value>Tipo origen</value>
+
+        [DataMember(Name="tipo")]
+        public string Tipo { get; set; }
+
+        /// <summary>
         /// Estado del proceso (PRO, FIN, ERR)
         /// </summary>
         /// <value>Estado del proceso (PRO, FIN, ERR)</value>
@@ -84,6 +92,14 @@ namespace ProyectoMigracionMovistarApi.Models
         public DateTime? Fecha { get; set; }
 
         /// <summary>
+        /// Notas del proceso
+        /// </summary>
+        /// <value>Notas del proceso</value>
+
+        [DataMember(Name="notas")]
+        public string Notas { get; set; }
+
+        /// <summary>
         /// Returns the string presentation of the object
         /// </summary>
         /// <returns>String presentation of the object</returns>
@@ -92,12 +108,14 @@ namespace ProyectoMigracionMovistarApi.Models
             var sb = new StringBuilder();
             sb.Append("class ProcesoResumen {\n");
             sb.Append("  IdProceso: ").Append(IdProceso).Append("\n");
+            sb.Append("  Tipo: ").Append(Tipo).Append("\n");
             sb.Append("  Estado: ").Append(Estado).Append("\n");
             sb.Append("  Total: ").Append(Total).Append("\n");
             sb.Append("  Exitosos: ").Append(Exitosos).Append("\n");
             sb.Append("  Errores: ").Append(Errores).Append("\n");
             sb.Append("  Duplicados: ").Append(Duplicados).Append("\n");
             sb.Append("  Fecha: ").Append(Fecha).Append("\n");
+            sb.Append("  Notas: ").Append(Notas).Append("\n");
             sb.Append("}\n");
             return sb.ToString();
         }
@@ -140,6 +158,11 @@ namespace ProyectoMigracionMovistarApi.Models
                     IdProceso.Equals(other.IdProceso)
                 ) && 
                 (
+                    Tipo == other.Tipo ||
+                    Tipo != null &&
+                    Tipo.Equals(other.Tipo)
+                ) && 
+                (
                     Estado == other.Estado ||
                     Estado != null &&
                     Estado.Equals(other.Estado)
@@ -168,6 +191,11 @@ namespace ProyectoMigracionMovistarApi.Models
                     Fecha == other.Fecha ||
                     Fecha != null &&
                     Fecha.Equals(other.Fecha)
+                ) && 
+                (
+                    Notas == other.Notas ||
+                    Notas != null &&
+                    Notas.Equals(other.Notas)
                 );
         }
 
@@ -183,6 +211,8 @@ namespace ProyectoMigracionMovistarApi.Models
                 // Suitable nullity checks etc, of course :)
                     if (IdProceso != null)
                     hashCode = hashCode * 59 + IdProceso.GetHashCode();
+                    if (Tipo != null)
+                    hashCode = hashCode * 59 + Tipo.GetHashCode();
                     if (Estado != null)
                     hashCode = hashCode * 59 + Estado.GetHashCode();
                     if (Total != null)
@@ -195,6 +225,8 @@ namespace ProyectoMigracionMovistarApi.Models
                     hashCode = hashCode * 59 + Duplicados.GetHashCode();
                     if (Fecha != null)
                     hashCode = hashCode * 59 + Fecha.GetHashCode();
+                    if (Notas != null)
+                    hashCode = hashCode * 59 + Notas.GetHashCode();
                 return hashCode;
             }
         }

@@ -7,25 +7,34 @@ namespace ProyectoMigracionMovistarApi.Bussines
 {
     public class ProcesoBL
     {
-        private readonly MigracionDbContext dbContext;
-        public ProcesoBL(MigracionDbContext context)
+        private readonly IDbContextFactory<MigracionDbContext> _dbContextFactory;
+        public ProcesoBL(IDbContextFactory<MigracionDbContext> dbContextFactory)
         {
-            dbContext = context;
+            _dbContextFactory = dbContextFactory;
         }
 
-        internal List<ProcesoResumen> ObtenerProcesosMigracion()
+        internal List<ProcesoResumen> ObtenerProcesos(string tipo)
         {
-            var procesos = dbContext.Procesos
+            using var dbContext = _dbContextFactory.CreateDbContext();
+
+            var query = dbContext.Procesos.AsQueryable();
+
+            if (!string.IsNullOrWhiteSpace(tipo))
+                query = query.Where(p => p.Origen == tipo);
+
+            var procesos = query
                 .OrderByDescending(p => p.Fecha)
                 .Select(p => new ProcesoResumen
                 {
                     IdProceso = p.IdProceso,
+                    Tipo = p.Origen,
                     Estado = p.EstadoProceso,
                     Total = p.TotalRegistros,
                     Exitosos = p.CantidadExito,
                     Errores = p.CantidadError,
                     Duplicados = p.CantidadDuplicado,
-                    Fecha = p.Fecha
+                    Fecha = p.Fecha,
+                    Notas = p.Notas
                 })
                 .ToList();
 
@@ -34,6 +43,8 @@ namespace ProyectoMigracionMovistarApi.Bussines
 
         internal RespuestaTransaccion RealizarMigracionManual(string usuario, DatosMigracionManual body)
         {
+            using var dbContext = _dbContextFactory.CreateDbContext();
+
             if (string.IsNullOrEmpty(body.Identificacion) ||
                 string.IsNullOrEmpty(body.NumeroTelefono) ||
                 string.IsNullOrEmpty(body.NumeroCuenta) ||
@@ -68,11 +79,14 @@ namespace ProyectoMigracionMovistarApi.Bussines
             if (!string.Equals(personaMigrar.Celular, body.NumeroTelefono, StringComparison.OrdinalIgnoreCase))
                 throw new ReglasExcepcion("PMARMM006", "El número de teléfono no coincide con el registrado");
 
+            if (personaMigrar.Cuenta == null || personaMigrar.Cuenta.Count == 0)
+                throw new ReglasExcepcion("PMARMM010", "No tiene ningún servicio contratado con nosotros actualmente");
+
             if (!personaMigrar.Cuenta.Any(x => x.NumeroCuenta == body.NumeroCuenta))
                 throw new ReglasExcepcion("PMARMM007", "El número de cuenta no coincide con ninguna cuenta registrada");
 
             string notas = "", codigoError = "";
-            ProcesarUsuarioMigracion(personaMigrar, personaMigrar.Cuenta.Where(x => x.NumeroCuenta == body.NumeroCuenta).ToList(), null, out notas, out codigoError);
+            ProcesarUsuarioMigracion(personaMigrar, personaMigrar.Cuenta.Where(x => x.NumeroCuenta == body.NumeroCuenta).ToList(), dbContext, null, out notas, out codigoError);
             if (!string.IsNullOrEmpty(codigoError))
                 throw new ReglasExcepcion(codigoError, notas);
 
@@ -96,8 +110,10 @@ namespace ProyectoMigracionMovistarApi.Bussines
             };
         }
 
-        internal async Task<RespuestaTransaccion> RealizarMigracionMasiva(string usuario, IServiceProvider serviceProvider)
+        internal async Task<RespuestaTransaccion> RealizarMigracionMasiva(string usuario)
         {
+            using var dbContext = _dbContextFactory.CreateDbContext();
+
             var usuarioRegistra = dbContext.Usuarios
                 .FirstOrDefault(x => x.NumeroIdentificacion == usuario);
 
@@ -106,21 +122,13 @@ namespace ProyectoMigracionMovistarApi.Bussines
             if (usuarioRegistra.Rol == "cliente")
                 throw new ReglasExcepcion("PMARMM009", "No tiene permisos para realizar migración masiva");
 
-            int totalRegistros = dbContext.Cuenta
-                .Where(c => c.IdServicioNavigation.IdOperador == Constantes.CodigoMovistar && !dbContext.Detalles.Any(d => d.IdCuenta == c.IdCuenta && d.Estado == "APL"))
-                .Count();
-
-            int idProceso = IniciarProceso("Migracion", totalRegistros, usuarioRegistra.IdUsuario);
+            int idProceso = IniciarProceso("Migracion", usuarioRegistra.IdUsuario, dbContext);
 
             _ = Task.Run(() =>
             {
                 try
                 {
-                    using var scope = serviceProvider.CreateScope();
-                    var nuevoDbContext = scope.ServiceProvider.GetRequiredService<MigracionDbContext>();
-                    var nuevaInstancia = new ProcesoBL(nuevoDbContext);
-
-                    nuevaInstancia.EjecutarMigracionMasivaPorLotes(usuarioRegistra, idProceso);
+                    EjecutarMigracionMasivaPorLotes(usuarioRegistra, idProceso);
                 }
                 catch
                 {
@@ -149,49 +157,78 @@ namespace ProyectoMigracionMovistarApi.Bussines
 
         private void EjecutarMigracionMasivaPorLotes(Usuario usuarioRegistra, int idProceso)
         {
+            using var dbContext = _dbContextFactory.CreateDbContext();
+
             var proceso = dbContext.Procesos.FirstOrDefault(p => p.IdProceso == idProceso);
             if (proceso == null)
                 return;
 
             try
             {
-                // Buscar todas las cuentas de Movistar que no han sido migradas
-                var cuentasMigrables = dbContext.Cuenta
-                    .Include(c => c.IdUsuarioNavigation)
-                    .Include(c => c.IdServicioNavigation)
-                    .Where(c =>
-                        c.IdServicioNavigation.IdOperador == Constantes.CodigoMovistar &&
-                        !dbContext.Detalles.Any(d => d.IdCuenta == c.IdCuenta && d.Estado == "APL"))
-                    .ToList();
+                const int batchSize = 100;
+                int skip = 0;
+                bool hayMas = true;
 
-                // Agrupar por usuario
-                var usuariosConCuentas = cuentasMigrables
-                    .GroupBy(c => c.IdUsuarioNavigation)
-                    .ToList();
-
-                foreach (var grupo in usuariosConCuentas)
+                while (hayMas)
                 {
-                    var usuario = grupo.Key;
-                    var cuentas = grupo.ToList();
+                    var cuentasMigrables = dbContext.Cuenta
+                        .Include(c => c.IdUsuarioNavigation)
+                        .Where(c => c.Migrada != "S")
+                        .OrderBy(c => c.IdCuenta)
+                        .Skip(skip)
+                        .Take(batchSize)
+                        .ToList();
 
-                    ProcesarUsuarioMigracion(usuario, cuentas, proceso, out string notas, out string codigoError);
+                    hayMas = cuentasMigrables.Count == batchSize;
+                    skip += batchSize;
+
+                    if (!cuentasMigrables.Any())
+                        break;
+
+                    var usuariosConCuentas = cuentasMigrables
+                        .GroupBy(c => c.IdUsuarioNavigation)
+                        .ToList();
+
+                    foreach (var grupo in usuariosConCuentas)
+                    {
+                        using var loteContext = _dbContextFactory.CreateDbContext();
+                        var usuario = grupo.Key;
+                        var cuentas = grupo.ToList();
+
+                        ProcesarUsuarioMigracion(usuario, cuentas, loteContext, proceso, out string notas, out string codigoError);
+                    }
                 }
 
                 proceso.EstadoProceso = "FIN";
+                proceso.Notas = "Migración masiva finalizada correctamente";
                 proceso.Fecha = DateTime.Now;
                 dbContext.SaveChanges();
             }
             catch (Exception ex)
             {
+                var mensajeError = APIUtil.RecuperarExcepcionSistema(ex);
+
                 proceso.EstadoProceso = "ERR";
+                proceso.Notas = mensajeError.CodigoError + ": " + mensajeError.MensajeError;
                 proceso.Fecha = DateTime.Now;
                 dbContext.SaveChanges();
             }
         }
 
 
-        private int IniciarProceso(string origen, int totalRegistros, int idUsuario)
+        private int IniciarProceso(string origen, int idUsuario, MigracionDbContext dbContext)
         {
+            if (dbContext.Procesos.Any(p => p.EstadoProceso == "PRO"))
+                throw new ReglasExcepcion("PMIGR007", "Ya existe un proceso en curso. Por favor, espere a que finalice antes de iniciar uno nuevo");
+
+            int totalRegistros = 0;
+            if (origen == "Migracion")
+            {
+                totalRegistros = dbContext.Cuenta
+                    .AsNoTracking()
+                    .Count(c => c.Migrada != "S");
+            }
+
             var nuevoProceso = new Proceso
             {
                 Origen = origen,
@@ -200,6 +237,7 @@ namespace ProyectoMigracionMovistarApi.Bussines
                 CantidadExito = 0,
                 CantidadDuplicado = 0,
                 CantidadError = 0,
+                Notas = "Proceso iniciado correctamente",
                 IdUsuario = idUsuario
             };
 
@@ -209,7 +247,7 @@ namespace ProyectoMigracionMovistarApi.Bussines
             return nuevoProceso.IdProceso;
         }
 
-        private void ProcesarUsuarioMigracion(Usuario personaMigrar, List<Cuenta> cuentas, Proceso proceso, out string notas, out string codigoError)
+        private void ProcesarUsuarioMigracion(Usuario personaMigrar, List<Cuenta> cuentas, MigracionDbContext dbContext, Proceso proceso, out string notas, out string codigoError)
         {
             notas = "";
             codigoError = "";
@@ -220,16 +258,6 @@ namespace ProyectoMigracionMovistarApi.Bussines
                     proceso.CantidadError += cuentas.Count;
 
                 notas = "El usuario a migrar no puede ser nulo.";
-                codigoError = "PMIGR000";
-                return;
-            }
-
-            if (string.IsNullOrWhiteSpace(personaMigrar.Celular) || personaMigrar.Celular.Length < 3)
-            {
-                if (proceso != null)
-                    proceso.CantidadError += cuentas.Count;
-
-                notas = "El número celular del usuario es inválido o no está definido.";
                 codigoError = "PMIGR000";
                 return;
             }
@@ -252,10 +280,7 @@ namespace ProyectoMigracionMovistarApi.Bussines
 
                     if (servicio.IdOperador != Constantes.CodigoMovistar)
                     {
-                        var detalle = dbContext.Detalles
-                            .FirstOrDefault(d => d.IdCuenta == cuenta.IdCuenta && d.Estado == "APL");
-
-                        if (detalle != null)
+                        if (cuenta.Migrada == "S")
                         {
                             estado = "DUP";
                             throw new ReglasExcepcion("PMIGR002", $"La cuenta {cuenta.NumeroCuenta} ya fue migrada anteriormente.");
@@ -267,6 +292,9 @@ namespace ProyectoMigracionMovistarApi.Bussines
                     int codigoDestino = 0;
                     if (servicio.Tipo == "Movil")
                     {
+                        if (string.IsNullOrWhiteSpace(personaMigrar.Celular) || personaMigrar.Celular.Length < 3)
+                            throw new ReglasExcepcion("PMIGR006", "El número celular del usuario es inválido o no está definido.");
+
                         string prefijo = personaMigrar.Celular.Substring(0, 3);
                         if (Constantes.PrefijosParaTigo.Contains(prefijo))
                             codigoDestino = Constantes.CodigoTigo;
@@ -292,9 +320,18 @@ namespace ProyectoMigracionMovistarApi.Bussines
                     if (proceso != null)
                         proceso.CantidadExito++;
 
+                    string nombreOperadorOrigen = dbContext.Operadors.FirstOrDefault(o => o.IdOperador == origen)?.Nombre ?? "Desconocido";
+                    string nombreOperadorDestino = dbContext.Operadors.FirstOrDefault(o => o.IdOperador == destino)?.Nombre ?? "Desconocido";
+
+                    notas += $"La cuenta '{cuenta.NumeroCuenta}' fue migrada de '{nombreOperadorOrigen}' a '{nombreOperadorDestino}' con el servicio '{servicio.Tipo}'";
+                    codigoError = "";
+
                     var nuevoDetalle = new Detalle
                     {
                         Estado = estado,
+                        TipoProceso = "Migracion",
+                        Notas = notas,
+                        CodigoError = codigoError,
                         IdOperadorOrigen = origen,
                         IdOperadorDestino = destino,
                         IdCuenta = cuenta.IdCuenta
@@ -302,12 +339,6 @@ namespace ProyectoMigracionMovistarApi.Bussines
 
                     dbContext.Detalles.Add(nuevoDetalle);
                     dbContext.SaveChanges();
-
-                    string nombreOperadorOrigen = dbContext.Operadors.FirstOrDefault(o => o.IdOperador == origen)?.Nombre ?? "Desconocido";
-                    string nombreOperadorDestino = dbContext.Operadors.FirstOrDefault(o => o.IdOperador == destino)?.Nombre ?? "Desconocido";
-
-                    notas += $"La cuenta '{cuenta.NumeroCuenta}' fue migrada de '{nombreOperadorOrigen}' a '{nombreOperadorDestino}' con el servicio '{servicio.Tipo}'";
-                    codigoError = "";
                 }
                 catch (Exception ex)
                 {
@@ -326,6 +357,9 @@ namespace ProyectoMigracionMovistarApi.Bussines
                     var nuevoDetalle = new Detalle
                     {
                         Estado = estado,
+                        TipoProceso = "Migracion",
+                        Notas = notas,
+                        CodigoError = codigoError,
                         IdCuenta = cuenta.IdCuenta
                     };
 

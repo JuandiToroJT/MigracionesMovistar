@@ -19,6 +19,12 @@ public partial class Detalle
 
     public int? IdProceso { get; set; }
 
+    public string? Notas { get; set; }
+
+    public string? CodigoError { get; set; }
+
+    public string? TipoProceso { get; set; }
+
     public virtual Cuenta? IdCuentaNavigation { get; set; }
 
     public virtual Operador? IdOperadorDestinoNavigation { get; set; }
