@@ -30,9 +30,11 @@ namespace ProyectoMigracionMovistarApi.Controllers
     public class ProcesoApi : APIUtil
     {
         private readonly IDbContextFactory<MigracionDbContext> _dbContextFactory;
-        public ProcesoApi(IDbContextFactory<MigracionDbContext> dbContextFactory)
+        private readonly string baseDatosExterna;
+        public ProcesoApi(IDbContextFactory<MigracionDbContext> dbContextFactory, IConfiguration configuration)
         {
             _dbContextFactory = dbContextFactory;
+            baseDatosExterna = configuration.GetConnectionString("MySqlExterna");
         }
 
         /// <summary>
@@ -54,6 +56,34 @@ namespace ProyectoMigracionMovistarApi.Controllers
             {
                 ProcesoBL reglasNegocio = new ProcesoBL(_dbContextFactory);
                 List<ProcesoResumen> respuesta = reglasNegocio.ObtenerProcesos(tipo);
+                return new ObjectResult(respuesta);
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(AdministrarExcepcion(ex));
+            }
+        }
+
+        /// <summary>
+        /// Obtiene el detalle de los procesos realizados los cuales son migraciones y cargues
+        /// </summary>
+        /// <remarks>Retorna todos los registros de procesos de migración y cargues realizados. </remarks>
+        /// <param name="idProceso">Id del proceso</param>
+        /// <param name="tipo">Tipo del proceso para filtrar por Migracion ó Cargue, si se envía vacío retorna todos</param>
+        /// <response code="200">Lista de detalle</response>
+        /// <response code="400">Error al recuperar la información</response>
+        [HttpGet]
+        [Route("procesos/detalle")]
+        [ValidateModelState]
+        [SwaggerOperation("ObtenerDetalleProcesos")]
+        [SwaggerResponse(statusCode: 200, type: typeof(List<DetalleProcesoItem>), description: "Lista de detalle")]
+        [SwaggerResponse(statusCode: 400, type: typeof(MensajeErrorItem), description: "Error al recuperar la información")]
+        public virtual IActionResult ObtenerDetalleProcesos([FromQuery] int? idProceso = null, [FromQuery] string tipo = null)
+        {
+            try
+            {
+                ProcesoBL reglasNegocio = new ProcesoBL(_dbContextFactory);
+                List<DetalleProcesoItem> respuesta = reglasNegocio.ObtenerDetalleProcesos(idProceso, tipo);
                 return new ObjectResult(respuesta);
             }
             catch (Exception ex)
@@ -110,6 +140,35 @@ namespace ProyectoMigracionMovistarApi.Controllers
             {
                 ProcesoBL reglasNegocio = new ProcesoBL(_dbContextFactory);
                 RespuestaTransaccion respuesta = await reglasNegocio.RealizarMigracionMasiva(usuario);
+                respuesta.Url = new Uri(Request.GetDisplayUrl()).ToString();
+                return new ObjectResult(respuesta);
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(AdministrarExcepcion(ex));
+            }
+        }
+
+        /// <summary>
+        /// Realiza el cargue de usuarios masivo
+        /// </summary>
+        /// <remarks>Procesa el cargue masivo de usuarios desde el archivo ingresado y/o desde la base de datos externa de la compañía. </remarks>
+        /// <param name="usuario">Identificación del usuario que inicia el proceso</param>
+        /// <param name="body">Datos del cargue</param>
+        /// <response code="200">Resultado del cargue masivo</response>
+        /// <response code="400">Error en la petición</response>
+        [HttpPost]
+        [Route("cargue/{usuario}/masivo")]
+        [ValidateModelState]
+        [SwaggerOperation("RealizarCargueUsuarios")]
+        [SwaggerResponse(statusCode: 200, type: typeof(RespuestaTransaccion), description: "Resultado del cargue masivo")]
+        [SwaggerResponse(statusCode: 400, type: typeof(MensajeErrorItem), description: "Error en la petición")]
+        public virtual async Task<IActionResult> RealizarCargueUsuarios([FromRoute][Required] string usuario, [FromBody] DatosCargueMasivo body)
+        {
+            try
+            {
+                ProcesoBL reglasNegocio = new ProcesoBL(_dbContextFactory);
+                RespuestaTransaccion respuesta = await reglasNegocio.RealizarCargueUsuarios(usuario, body, baseDatosExterna);
                 respuesta.Url = new Uri(Request.GetDisplayUrl()).ToString();
                 return new ObjectResult(respuesta);
             }

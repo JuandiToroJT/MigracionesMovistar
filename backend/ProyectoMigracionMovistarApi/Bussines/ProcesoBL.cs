@@ -1,7 +1,12 @@
-﻿using Microsoft.EntityFrameworkCore;
+﻿using ExcelDataReader;
+using Microsoft.AspNetCore.Identity;
+using Microsoft.AspNetCore.Routing;
+using Microsoft.EntityFrameworkCore;
 using ProyectoMigracionMovistarApi.Entities;
 using ProyectoMigracionMovistarApi.Models;
 using ProyectoMigracionMovistarApi.Utils;
+using System.Data;
+using System.Text;
 
 namespace ProyectoMigracionMovistarApi.Bussines
 {
@@ -39,6 +44,46 @@ namespace ProyectoMigracionMovistarApi.Bussines
                 .ToList();
 
             return procesos;
+        }
+
+        internal List<DetalleProcesoItem> ObtenerDetalleProcesos(int? idProceso, string tipo)
+        {
+            using var dbContext = _dbContextFactory.CreateDbContext();
+
+            var query = dbContext.Detalles
+                .Include(d => d.IdCuentaNavigation)
+                    .ThenInclude(c => c.IdUsuarioNavigation)
+                .Include(d => d.IdCuentaNavigation)
+                    .ThenInclude(c => c.IdServicioNavigation)
+                        .ThenInclude(s => s.IdOperadorNavigation)
+                .AsQueryable();
+
+            if (idProceso.HasValue)
+                query = query.Where(p => p.IdProceso == idProceso.Value);
+            if (!string.IsNullOrWhiteSpace(tipo))
+                query = query.Where(p => p.TipoProceso == tipo);
+
+            var detalles = query
+                .OrderByDescending(d => d.Fecha)
+                .Select(d => new DetalleProcesoItem
+                {
+                    IdProceso = d.IdProceso,
+                    Tipo = d.TipoProceso,
+                    Estado = d.Estado,
+                    Fecha = d.Fecha,
+                    Notas = d.Notas,
+                    TipoIdentificacion = d.IdCuentaNavigation.IdUsuarioNavigation.TipoIdentificacion,
+                    Identificacion = d.IdCuentaNavigation.IdUsuarioNavigation.NumeroIdentificacion,
+                    NombreCliente = d.IdCuentaNavigation.IdUsuarioNavigation.Nombre,
+                    IdCuenta = d.IdCuenta,
+                    NumeroCuenta = d.IdCuentaNavigation.NumeroCuenta,
+                    TipoServicio = d.IdCuentaNavigation.IdServicioNavigation.Tipo,
+                    IdOperador = d.IdCuentaNavigation.IdServicioNavigation.IdOperador,
+                    Operador = d.IdCuentaNavigation.IdServicioNavigation.IdOperadorNavigation.Nombre
+                })
+                .ToList();
+
+            return detalles;
         }
 
         internal RespuestaTransaccion RealizarMigracionManual(string usuario, DatosMigracionManual body)
@@ -122,7 +167,11 @@ namespace ProyectoMigracionMovistarApi.Bussines
             if (usuarioRegistra.Rol == "cliente")
                 throw new ReglasExcepcion("PMARMM009", "No tiene permisos para realizar migración masiva");
 
-            int idProceso = IniciarProceso("Migracion", usuarioRegistra.IdUsuario, dbContext);
+            int totalRegistros = dbContext.Cuenta
+                    .AsNoTracking()
+                    .Count(c => c.Migrada != "S");
+
+            int idProceso = IniciarProceso("Migracion", usuarioRegistra.IdUsuario, dbContext, totalRegistros);
 
             _ = Task.Run(() =>
             {
@@ -153,6 +202,160 @@ namespace ProyectoMigracionMovistarApi.Bussines
                 NumeroRegistro = idProceso,
                 Notas = $"Proceso de migración masiva iniciado. ID del proceso: {idProceso}"
             };
+        }
+
+        internal async Task<RespuestaTransaccion> RealizarCargueUsuarios(string usuario, DatosCargueMasivo body, string baseDatosExterna)
+        {
+            using var dbContext = _dbContextFactory.CreateDbContext();
+
+            var usuarioRegistra = dbContext.Usuarios
+                .FirstOrDefault(x => x.NumeroIdentificacion == usuario);
+
+            if (usuarioRegistra == null)
+                throw new ReglasExcepcion("PMARCU001", "Usuario no encontrado");
+            if (usuarioRegistra.Rol == "cliente")
+                throw new ReglasExcepcion("PMARCU002", "No tiene permisos para realizar el cargue masivo");
+
+            int totalRegistros = 0;
+            List<Usuario> usuariosCargados = new List<Usuario>();
+            if (body.Archivo != null)
+            {
+                DataTable datosUsuarios = CargarDatosDesdeArchivo(body.Archivo, body.Formato);
+                Dictionary<string, Usuario> mapaUsuarios = new Dictionary<string, Usuario>();
+
+                foreach (DataRow fila in datosUsuarios.Rows)
+                {
+                    string numeroIdentificacion = fila["NumeroIdentificacion"]?.ToString()?.Trim() ?? "";
+
+                    if (!mapaUsuarios.TryGetValue(numeroIdentificacion, out var usuarioitem))
+                    {
+                        var hasher = new PasswordHasher<Usuario>();
+                        usuarioitem = new Usuario
+                        {
+                            TipoIdentificacion = fila["TipoIdentificacionId"]?.ToString()?.Trim(),
+                            NumeroIdentificacion = numeroIdentificacion,
+                            Nombre = fila["NombreCompleto"]?.ToString()?.Trim(),
+                            Correo = fila["CorreoElectronico"]?.ToString()?.Trim(),
+                            Celular = fila["NumeroCelular"]?.ToString()?.Trim(),
+                            Clave = null,
+                            Rol = "cliente",
+                            Cuenta = new List<Cuenta>()
+                        };
+
+                        usuarioitem.Clave = hasher.HashPassword(usuarioitem, "123");
+
+                        mapaUsuarios[numeroIdentificacion] = usuarioitem;
+                    }
+
+                    var cuenta = new Cuenta
+                    {
+                        NumeroCuenta = fila["NumeroCuenta"]?.ToString()?.Trim(),
+                        IdServicio = int.TryParse(fila["PlanId"]?.ToString(), out var idPlan) ? idPlan : (int?)null,
+                        Migrada = "N"
+                    };
+
+                    usuarioitem.Cuenta.Add(cuenta);
+                    totalRegistros++;
+                }
+
+                usuariosCargados = mapaUsuarios.Values.ToList();
+            }
+
+            //Seccion para conectar y poblar de la bd externa
+
+
+            int idProceso = IniciarProceso("Cargue", usuarioRegistra.IdUsuario, dbContext, totalRegistros);
+
+            _ = Task.Run(() =>
+            {
+                try
+                {
+                    EjecutarCargueMasivo(usuarioRegistra, idProceso, usuariosCargados);
+                }
+                catch
+                {
+                }
+            });
+
+            if (usuarioRegistra.Rol == "admin")
+            {
+                var nuevoAuditoria = new Auditoria
+                {
+                    TipoEvento = "Cargue",
+                    Descripcion = $"Cargue masivo realizado por el administrador {usuarioRegistra.NumeroIdentificacion}",
+                    IdUsuario = usuarioRegistra.IdUsuario
+                };
+
+                dbContext.Auditoria.Add(nuevoAuditoria);
+                dbContext.SaveChanges();
+            }
+
+            return new RespuestaTransaccion()
+            {
+                NumeroRegistro = idProceso,
+                Notas = $"Proceso de cargue masivo iniciado. ID del proceso: {idProceso}"
+            };
+        }
+
+        private DataTable CargarDatosDesdeArchivo(byte[] archivo, string formato)
+        {
+            var tipo = formato.ToUpper().Trim();
+
+            if (tipo == "CSV")
+                return LeerCsvDesdeBytes(archivo);
+            else if (tipo == "XLS" || tipo == "XLSX")
+                return LeerExcelDesdeBytes(archivo);
+            else
+                throw new ReglasExcepcion("PMARCU003", "Formato de archivo no soportado: " + tipo);
+        }
+
+        private DataTable LeerCsvDesdeBytes(byte[] archivo)
+        {
+            var dt = new DataTable();
+            using (var ms = new MemoryStream(archivo))
+            using (var reader = new StreamReader(ms, Encoding.UTF8))
+            {
+                bool columnasCargadas = false;
+
+                while (!reader.EndOfStream)
+                {
+                    var linea = reader.ReadLine();
+                    if (string.IsNullOrWhiteSpace(linea)) continue;
+
+                    var valores = linea.Split(',');
+
+                    if (!columnasCargadas)
+                    {
+                        foreach (var columna in valores)
+                            dt.Columns.Add(columna.Trim());
+                        columnasCargadas = true;
+                    }
+                    else
+                    {
+                        dt.Rows.Add(valores);
+                    }
+                }
+            }
+            return dt;
+        }
+
+        private DataTable LeerExcelDesdeBytes(byte[] archivo)
+        {
+            Encoding.RegisterProvider(CodePagesEncodingProvider.Instance);
+
+            using (var ms = new MemoryStream(archivo))
+            using (var reader = ExcelReaderFactory.CreateReader(ms))
+            {
+                var result = reader.AsDataSet(new ExcelDataSetConfiguration()
+                {
+                    ConfigureDataTable = (_) => new ExcelDataTableConfiguration
+                    {
+                        UseHeaderRow = true
+                    }
+                });
+
+                return result.Tables[0];
+            }
         }
 
         private void EjecutarMigracionMasivaPorLotes(Usuario usuarioRegistra, int idProceso)
@@ -215,19 +418,42 @@ namespace ProyectoMigracionMovistarApi.Bussines
             }
         }
 
+        private void EjecutarCargueMasivo(Usuario usuarioRegistra, int idProceso, List<Usuario> usuariosCargados)
+        {
+            using var dbContext = _dbContextFactory.CreateDbContext();
 
-        private int IniciarProceso(string origen, int idUsuario, MigracionDbContext dbContext)
+            var proceso = dbContext.Procesos.FirstOrDefault(p => p.IdProceso == idProceso);
+            if (proceso == null)
+                return;
+
+            try
+            {
+                foreach (var item in usuariosCargados)
+                {
+                    using var loteContext = _dbContextFactory.CreateDbContext();
+                    ProcesarUsuarioCargue(item, loteContext, proceso);
+                }
+
+                proceso.EstadoProceso = "FIN";
+                proceso.Notas = "Cargue masivo finalizada correctamente";
+                proceso.Fecha = DateTime.Now;
+                dbContext.SaveChanges();
+            }
+            catch (Exception ex)
+            {
+                var mensajeError = APIUtil.RecuperarExcepcionSistema(ex);
+
+                proceso.EstadoProceso = "ERR";
+                proceso.Notas = mensajeError.CodigoError + ": " + mensajeError.MensajeError;
+                proceso.Fecha = DateTime.Now;
+                dbContext.SaveChanges();
+            }
+        }
+
+        private int IniciarProceso(string origen, int idUsuario, MigracionDbContext dbContext, int totalRegistros)
         {
             if (dbContext.Procesos.Any(p => p.EstadoProceso == "PRO"))
                 throw new ReglasExcepcion("PMIGR007", "Ya existe un proceso en curso. Por favor, espere a que finalice antes de iniciar uno nuevo");
-
-            int totalRegistros = 0;
-            if (origen == "Migracion")
-            {
-                totalRegistros = dbContext.Cuenta
-                    .AsNoTracking()
-                    .Count(c => c.Migrada != "S");
-            }
 
             var nuevoProceso = new Proceso
             {
@@ -247,15 +473,136 @@ namespace ProyectoMigracionMovistarApi.Bussines
             return nuevoProceso.IdProceso;
         }
 
+        private void ProcesarUsuarioCargue(Usuario item, MigracionDbContext dbContext, Proceso proceso)
+        {
+            int? numeroProceso = null;
+            if (proceso != null)
+                numeroProceso = proceso.IdProceso;
+
+            if (item.Cuenta == null || !item.Cuenta.Any())
+            {
+                if (proceso != null)
+                    proceso.CantidadError ++;
+
+                RegistrarDetalleCargue(dbContext, numeroProceso, "ERR", "El usuario no tiene cuentas asociadas.", "PMARCU003");
+                dbContext.SaveChanges();
+                return;
+            }
+
+            if (string.IsNullOrWhiteSpace(item.TipoIdentificacion) ||
+                    string.IsNullOrWhiteSpace(item.NumeroIdentificacion) ||
+                    string.IsNullOrWhiteSpace(item.Nombre) ||
+                    string.IsNullOrWhiteSpace(item.Correo) ||
+                    string.IsNullOrWhiteSpace(item.Celular))
+            {
+                foreach (var cuenta in item.Cuenta)
+                {
+                    if (proceso != null)
+                        proceso.CantidadError++;
+
+                    RegistrarDetalleCargue(dbContext, numeroProceso, "ERR", $"Faltan campos obligatorios para el usuario '{item.NumeroIdentificacion}'.", "PMARCU005");
+                }
+
+                dbContext.SaveChanges();
+                return;
+            }
+
+            var usuarioExistente = dbContext.Usuarios
+                        .Include(u => u.Cuenta)
+                        .FirstOrDefault(u => u.NumeroIdentificacion == item.NumeroIdentificacion);
+
+            foreach (var cuenta in item.Cuenta)
+            {
+                string estado = "ERR";
+
+                try
+                {
+                    if (string.IsNullOrWhiteSpace(cuenta.NumeroCuenta) || !cuenta.IdServicio.HasValue)
+                        throw new ReglasExcepcion("PMARCU006", $"La cuenta del usuario '{item.NumeroIdentificacion}' no tiene todos los datos requeridos.");
+
+                    if (usuarioExistente == null)
+                    {
+                        var nuevoUsuario = new Usuario
+                        {
+                            TipoIdentificacion = item.TipoIdentificacion,
+                            NumeroIdentificacion = item.NumeroIdentificacion,
+                            Nombre = item.Nombre,
+                            Correo = item.Correo,
+                            Celular = item.Celular,
+                            Cuenta = new List<Cuenta>()
+                        };
+
+                        dbContext.Usuarios.Add(nuevoUsuario);
+                        dbContext.SaveChanges();
+                        usuarioExistente = nuevoUsuario;
+                    }
+
+                    if (usuarioExistente.Cuenta != null && usuarioExistente.Cuenta.Any(c => c.NumeroCuenta == cuenta.NumeroCuenta))
+                    {
+                        estado = "DUP";
+                        throw new ReglasExcepcion("PMARCU004", $"La cuenta {cuenta.NumeroCuenta} ya está registrada para el usuario '{item.NumeroIdentificacion}'.");
+                    }
+
+                    cuenta.IdUsuario = usuarioExistente.IdUsuario;
+                    usuarioExistente.Cuenta.Add(cuenta);
+                    dbContext.Cuenta.Add(cuenta);
+
+                    dbContext.SaveChanges();
+
+                    estado = "APL";
+
+                    if (proceso != null)
+                        proceso.CantidadExito++;
+
+                    RegistrarDetalleCargue(dbContext, numeroProceso, estado, $"Cuenta '{cuenta.NumeroCuenta}' se registro correctamente para el usuario '{item.NumeroIdentificacion}'.", "");
+                    dbContext.SaveChanges();
+                }
+                catch (Exception ex)
+                {
+                    var mensajeError = APIUtil.RecuperarExcepcionSistema(ex);
+
+                    if (proceso != null)
+                    {
+                        if (estado == "DUP")
+                            proceso.CantidadDuplicado++;
+                        else
+                            proceso.CantidadError++;
+                    }
+
+                    RegistrarDetalleCargue(dbContext, numeroProceso, estado, mensajeError.MensajeError, mensajeError.CodigoError);
+                    dbContext.SaveChanges();
+                }
+            }
+        }
+
+        private void RegistrarDetalleCargue(MigracionDbContext dbContext, int? idProceso, string estado, string notas, string codigoError)
+        {
+            dbContext.Detalles.Add(new Detalle
+            {
+                Estado = estado,
+                TipoProceso = "Cargue",
+                Notas = notas,
+                CodigoError = codigoError,
+                IdProceso = idProceso
+            });
+        }
+
         private void ProcesarUsuarioMigracion(Usuario personaMigrar, List<Cuenta> cuentas, MigracionDbContext dbContext, Proceso proceso, out string notas, out string codigoError)
         {
             notas = "";
             codigoError = "";
 
+            int? numeroProceso = null;
+            if (proceso != null)
+                numeroProceso = proceso.IdProceso;
+
             if (personaMigrar == null)
             {
                 if (proceso != null)
+                {
                     proceso.CantidadError += cuentas.Count;
+                    dbContext.SaveChanges();
+                }
 
                 notas = "El usuario a migrar no puede ser nulo.";
                 codigoError = "PMIGR000";
@@ -286,7 +633,11 @@ namespace ProyectoMigracionMovistarApi.Bussines
                             throw new ReglasExcepcion("PMIGR002", $"La cuenta {cuenta.NumeroCuenta} ya fue migrada anteriormente.");
                         }
                         else
+                        {
+                            cuenta.Migrada = "S";
+                            dbContext.SaveChanges();
                             throw new ReglasExcepcion("PMIGR003", $"La cuenta {cuenta.NumeroCuenta} no requiere migración; ya pertenece a otro operador.");
+                        }
                     }
 
                     int codigoDestino = 0;
@@ -313,6 +664,7 @@ namespace ProyectoMigracionMovistarApi.Bussines
                     int origen = servicio.IdOperador.Value, destino = codigoDestino;
 
                     cuenta.IdServicio = servicioOperadorDestino.IdServicio;
+                    cuenta.Migrada = "S";
                     dbContext.SaveChanges();
 
                     estado = "APL";
@@ -334,7 +686,8 @@ namespace ProyectoMigracionMovistarApi.Bussines
                         CodigoError = codigoError,
                         IdOperadorOrigen = origen,
                         IdOperadorDestino = destino,
-                        IdCuenta = cuenta.IdCuenta
+                        IdCuenta = cuenta.IdCuenta,
+                        IdProceso = numeroProceso
                     };
 
                     dbContext.Detalles.Add(nuevoDetalle);
@@ -360,7 +713,8 @@ namespace ProyectoMigracionMovistarApi.Bussines
                         TipoProceso = "Migracion",
                         Notas = notas,
                         CodigoError = codigoError,
-                        IdCuenta = cuenta.IdCuenta
+                        IdCuenta = cuenta.IdCuenta,
+                        IdProceso = numeroProceso
                     };
 
                     dbContext.Detalles.Add(nuevoDetalle);
