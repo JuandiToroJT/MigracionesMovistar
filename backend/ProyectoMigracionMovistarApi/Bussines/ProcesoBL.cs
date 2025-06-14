@@ -529,6 +529,8 @@ namespace ProyectoMigracionMovistarApi.Bussines
                             Nombre = item.Nombre,
                             Correo = item.Correo,
                             Celular = item.Celular,
+                            Clave = item.Clave,
+                            Rol = item.Rol,
                             Cuenta = new List<Cuenta>()
                         };
 
@@ -554,7 +556,7 @@ namespace ProyectoMigracionMovistarApi.Bussines
                     if (proceso != null)
                         proceso.CantidadExito++;
 
-                    RegistrarDetalleCargue(dbContext, numeroProceso, estado, $"Cuenta '{cuenta.NumeroCuenta}' se registro correctamente para el usuario '{item.NumeroIdentificacion}'.", "");
+                    RegistrarDetalleCargue(dbContext, numeroProceso, estado, $"Cuenta '{cuenta.NumeroCuenta}' se registro correctamente para el usuario '{item.NumeroIdentificacion}'.", "", cuenta.IdCuenta);
                     dbContext.SaveChanges();
                 }
                 catch (Exception ex)
@@ -569,13 +571,17 @@ namespace ProyectoMigracionMovistarApi.Bussines
                             proceso.CantidadError++;
                     }
 
-                    RegistrarDetalleCargue(dbContext, numeroProceso, estado, mensajeError.MensajeError, mensajeError.CodigoError);
+                    int? idCuenta = null;
+                    if (estado == "DUP")
+                        idCuenta = usuarioExistente.Cuenta.FirstOrDefault(c => c.NumeroCuenta == cuenta.NumeroCuenta)?.IdCuenta;
+
+                    RegistrarDetalleCargue(dbContext, numeroProceso, estado, mensajeError.MensajeError, mensajeError.CodigoError, idCuenta);
                     dbContext.SaveChanges();
                 }
             }
         }
 
-        private void RegistrarDetalleCargue(MigracionDbContext dbContext, int? idProceso, string estado, string notas, string codigoError)
+        private void RegistrarDetalleCargue(MigracionDbContext dbContext, int? idProceso, string estado, string notas, string codigoError, int? idCuenta = null)
         {
             dbContext.Detalles.Add(new Detalle
             {
@@ -583,7 +589,8 @@ namespace ProyectoMigracionMovistarApi.Bussines
                 TipoProceso = "Cargue",
                 Notas = notas,
                 CodigoError = codigoError,
-                IdProceso = idProceso
+                IdProceso = idProceso,
+                IdCuenta = idCuenta
             });
         }
 
