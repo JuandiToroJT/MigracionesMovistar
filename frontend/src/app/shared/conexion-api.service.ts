@@ -9,12 +9,12 @@ import { miagra_manualModel } from './migra_manual.model';
 })
 export class ConexionApiService {
 
-  BASE_URL_GET = 'https://localhost:44394'
+  BASE_URL_GET = 'https://migracionproyectjt-d0bpe4g9d4eugzbc.canadacentral-01.azurewebsites.net/'
 
   constructor(private http: HttpClient, private router: Router) { }
 
    obtenerProcesos() {
-    return this.http.get(this.BASE_URL_GET + '/migraciones/procesos');
+    return this.http.get(this.BASE_URL_GET + '/procesos');
   }
 
    agregarMigraManual(Migra_manual: miagra_manualModel) {
@@ -24,7 +24,7 @@ export class ConexionApiService {
   }
 
   procesarMigracionMasiva() {
-    return this.http.post<string>(`${this.BASE_URL_GET}/migraciones/1001/masiva`, null)
+    return this.http.post<string>(`${this.BASE_URL_GET}/migraciones/123/masiva`, null)
      
   }
 }
