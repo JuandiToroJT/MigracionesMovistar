@@ -3,12 +3,12 @@ import { ConexionApiService } from '../shared/conexion-api.service';
 import { ActivatedRoute, Router } from '@angular/router';
 import { FormGroup } from '@angular/forms';
 import { HttpClient } from '@angular/common/http';
-import Swal from 'sweetalert2'
+import Swal from 'sweetalert2';
 
 @Component({
   selector: 'app-migra-automatico',
   templateUrl: './migra-automatico.component.html',
-  styleUrls: ['./migra-automatico.component.scss']
+  styleUrls: ['./migra-automatico.component.scss'],
 })
 export class MigraAutomaticoComponent {
   public formulario: FormGroup;
@@ -19,59 +19,162 @@ export class MigraAutomaticoComponent {
     private ConexionApiService: ConexionApiService,
     private route: ActivatedRoute,
     private router: Router,
-    private http: HttpClient,) {
-
-    this.formulario = new FormGroup({
-
-    });
+    private http: HttpClient
+  ) {
+    this.formulario = new FormGroup({});
   }
 
   procesarMigracion() {
-    const url = 'http://localhost:44394/migraciones/1001/masiva'; // Ajusta el host si es necesario
+    const url =
+      'https://migracionproyectjt-d0bpe4g9d4eugzbc.canadacentral-01.azurewebsites.net/migraciones/123/masiva'; // Ajusta el host si es necesario
 
     this.ConexionApiService.procesarMigracionMasiva().subscribe({
       next: (respuesta) => {
-        this.cargarListado()
+        this.intervalo = setInterval(() => {
+          this.cargarListado();
+        }, 400);
         Swal.fire({
-          icon: "success",
-          title: "✅ Migracion iniciada ",
+          icon: 'success',
+          title: '✅ Migracion iniciada ',
           //text: ".",
-        // footer: '<a href="#">Why do I have this issue?</a>'
+          // footer: '<a href="#">Why do I have this issue?</a>'
           timer: 2100,
         });
       },
       error: (error) => {
         Swal.fire({
-          icon: "error",
-          title: " ❌ ocurrio un error: "+ error.error.mensajeError,
+          icon: 'error',
+          title: ' ❌ ocurrio un error: ' + error.error.mensajeError,
           //text: ".",
-        // footer: '<a href="#">Why do I have this issue?</a>'
+          // footer: '<a href="#">Why do I have this issue?</a>'
           timer: 2100,
         });
-      }
+      },
     });
   }
 
-  cargarListado(){
+  cargarListado() {
     this.ConexionApiService.obtenerProcesos().subscribe(
-        (data) => {
-          this.listaProcesos = data;
-          console.log("✅ lista de procesos - Datos cargados:");
-          // console.log("✅ Datos cargados:", this.listaUsuarios);
-        },
-        (error) => {
-          Swal.fire({
-          icon: "error",
-          title: " ❌ ocurrio un error: "+ error.error.mensajeError,
+      (data) => {
+        this.listaProcesos = data;
+        if (
+          Array.isArray(this.listaProcesos) &&
+          this.listaProcesos.length > 0
+        ) {
+          const todosFinalizados = this.listaProcesos.every(
+            (proceso: any) =>
+              proceso.estado && proceso.estado.toLowerCase() === 'fin'
+          );
+          if (todosFinalizados && this.intervalo) {
+            clearInterval(this.intervalo);
+            this.intervalo = null;
+          }
+        }
+        console.log('✅ lista de procesos - Datos cargados:');
+        // console.log("✅ Datos cargados:", this.listaUsuarios);
+      },
+      (error) => {
+        Swal.fire({
+          icon: 'error',
+          title: ' ❌ ocurrio un error: ' + error.error.mensajeError,
           //text: ".",
-        // footer: '<a href="#">Why do I have this issue?</a>'
+          // footer: '<a href="#">Why do I have this issue?</a>'
           timer: 2100,
         });
-        }
-      );
+      }
+    );
+  }
+  getPorcentaje(valor: number, total: number): number {
+    if (!total || total === 0) return 0;
+    return Math.round((valor / total) * 100);
+  }
+  intervalo: any;
+  currentPage: number = 1;
+  itemsPerPage: number = 7;
+
+  get procesosPaginados(): any[] {
+    const start = (this.currentPage - 1) * this.itemsPerPage;
+    const end = start + this.itemsPerPage;
+    return this.listaProcesos.slice(start, end);
   }
 
-    ngOnInit() {
-      this.cargarListado()
+  get totalPaginas(): number[] {
+    return Array.from(
+      { length: Math.ceil(this.listaProcesos.length / this.itemsPerPage) },
+      (_, i) => i + 1
+    );
+  }
+
+  cambiarPagina(pagina: number) {
+    if (pagina >= 1 && pagina <= this.totalPaginas.length) {
+      this.currentPage = pagina;
     }
   }
+  archivoBase64: string | null = null;
+  nombreArchivo: string = '';
+  usuario: string = '123'; // Puedes obtenerlo dinámicamente si lo deseas
+
+  onArchivoSeleccionado(event: Event) {
+    const input = event.target as HTMLInputElement;
+    if (input.files && input.files.length > 0) {
+      const archivo = input.files[0];
+      this.nombreArchivo = archivo.name;
+
+      const reader = new FileReader();
+      reader.onload = () => {
+        const contenido = reader.result as string;
+        // Base64 sin el prefijo data:
+        this.archivoBase64 = contenido.split(',')[1];
+      };
+      reader.readAsDataURL(archivo);
+    }
+  }
+
+  subirArchivoExcel() {
+    if (!this.archivoBase64 || !this.nombreArchivo) {
+      Swal.fire({
+        icon: 'warning',
+        title: '⚠️ Archivo no válido',
+        text: 'Selecciona un archivo válido antes de continuar.',
+      });
+      return;
+    }
+
+    const extension = this.nombreArchivo.split('.').pop()?.toLowerCase() || '';
+    const payload = {
+      archivo: this.archivoBase64,
+      formato: extension,
+    };
+
+    const url = `https://migracionproyectjt-d0bpe4g9d4eugzbc.canadacentral-01.azurewebsites.net/cargue/${this.usuario}/masivo`;
+
+    this.http.post(url, payload).subscribe({
+      next: () => {
+        this.intervalo = setInterval(() => {
+          this.cargarListado();
+        }, 400);
+        Swal.fire({
+          icon: 'success',
+          title: '✅ Archivo enviado correctamente',
+          timer: 2000,
+        });
+        this.archivoBase64 = null;
+        this.nombreArchivo = '';
+      },
+      error: (error) => {
+        Swal.fire({
+          icon: 'error',
+          title: '❌ Error al subir el archivo',
+          text: error.error?.mensajeError || 'Ocurrió un error inesperado.',
+        });
+      },
+    });
+  }
+
+  ngOnInit() {
+    this.cargarListado();
+    this.intervalo = setInterval(() => {
+      this.cargarListado();
+    }, 400);
+  }
+}

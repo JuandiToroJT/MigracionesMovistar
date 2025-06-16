@@ -1,67 +1,123 @@
 <body>
-    <div class="container-auto">
-        <div class="panel">
-            <div class="auto-migracion">
-                <h2>Migracion automática de Usuario</h2>
-                <p>
-                    Esta opción permite cargar un archivo de usuario <br>
-                    para ejecutar el proceso de migración automática.
-                </p>
-                <div class="file-upload">
-                    <button class="btn-procesar" (click)="procesarMigracion()">Procesar migración automática</button>
-                </div>
-
-
-                <h3 class="titleTable">Reporte de Estados</h3>
-                <div class="table-container">
-  <table class="tabla-estados">
-    <thead>
-      <tr>
-        <th>id</th>
-        <th>estado</th>
-        <th>total</th>
-        <th>exitosos</th>
-        <th>errores</th>
-        <th>duplicados</th>
-        <th>fecha</th>
-      </tr>
-    </thead>
-    <tbody>
-      <tr *ngFor="let proceso of listaProcesos">
-        <td>{{ proceso.idProceso }}</td>
-        <td>{{ proceso.estado }}</td>
-        <td>{{ proceso.total }}</td>
-        <td>{{ proceso.exitosos }}</td>
-        <td>{{ proceso.errores }}</td>
-        <td>{{ proceso.duplicados }}</td>
-        <td>{{ proceso.fecha }}</td>
-      </tr>
-    </tbody>
-  </table>
-</div>
-                <div class="paginacion">
-                    <span>&lt;</span>
-                    <span>1</span>
-                    <span>2</span>
-                    <span>3</span>
-                    <span>4</span>
-                    <span>5</span>
-                    <span>6</span>
-                    <span>&gt;</span>
-                </div>
-
-
-            </div>
+  <div class="container-auto">
+    <div class="panel">
+      <div class="auto-migracion">
+        <h2>Migracion automática de Usuario</h2>
+        <p>
+          Esta opción permite cargar un archivo de usuario <br />
+          para ejecutar el proceso de migración automática.
+        </p>
+        <div class="file-upload">
+          <label for="archivoExcel">📄 Cargar archivo CSV:</label>
+          <input
+            type="file"
+            id="archivoExcel"
+            (change)="onArchivoSeleccionado($event)"
+            accept=".csv"
+          />
+          <button
+            class="btn-procesar"
+            [disabled]="!archivoBase64"
+            (click)="subirArchivoExcel()"
+          >
+            Subir archivo
+          </button>
         </div>
 
-        <div class="admin-panel">
-            <h3>Panel de Administrador</h3>
-            <button class="btn-ingresar" [routerLink]="['/migra_manual']">
-                <i class="bi bi-journal-arrow-up"></i> <br>
-                Ingresar migración manual
-            </button>
-            <button class="bi bi-door-open-fill" style="font-size: 3rem;border-radius: 10px;"></button>
-            <img src="https://www.iconarchive.com/download/i98238/dakirby309/simply-styled/Control-Panel.ico" alt="">
+        <div class="file-upload">
+          <button class="btn-procesar" (click)="procesarMigracion()">
+            Procesar migración automática
+          </button>
         </div>
+
+        <h3 class="titleTable">Reporte de Estados</h3>
+        <div class="table-container">
+          <table class="tabla-estados">
+            <thead>
+              <tr>
+                <th>id</th>
+                <th>estado</th>
+                <th colspan="3">Progreso</th>
+                <!-- Encabezado combinado -->
+                <th>fecha</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr *ngFor="let proceso of procesosPaginados">
+                <td>{{ proceso.idProceso }}</td>
+                <td>{{ proceso.estado }}</td>
+                <td colspan="3">
+                  <div class="barra-progreso">
+                    <div
+                      class="exito"
+                      [style.width.%]="
+                        getPorcentaje(proceso.exitosos, proceso.total)
+                      "
+                    ></div>
+                    <div
+                      class="error"
+                      [style.width.%]="
+                        getPorcentaje(proceso.errores, proceso.total)
+                      "
+                    ></div>
+                    <div
+                      class="duplicado"
+                      [style.width.%]="
+                        getPorcentaje(proceso.duplicados, proceso.total)
+                      "
+                    ></div>
+                  </div>
+                  <small>
+                    ✅ {{ proceso.exitosos }} | ❌ {{ proceso.errores }} | 🟡
+                    {{ proceso.duplicados }} / {{ proceso.total }}
+                  </small>
+                </td>
+
+                <td>{{ proceso.fecha }}</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+        <div class="paginacion">
+          <button
+            (click)="cambiarPagina(currentPage - 1)"
+            [disabled]="currentPage === 1"
+          >
+            &lt;
+          </button>
+
+          <button
+            *ngFor="let pagina of totalPaginas"
+            [class.activa]="pagina === currentPage"
+            (click)="cambiarPagina(pagina)"
+          >
+            {{ pagina }}
+          </button>
+
+          <button
+            (click)="cambiarPagina(currentPage + 1)"
+            [disabled]="currentPage === totalPaginas.length"
+          >
+            &gt;
+          </button>
+        </div>
+      </div>
     </div>
+
+    <div class="admin-panel">
+      <h3>Panel de Administrador</h3>
+      <button class="btn-ingresar" [routerLink]="['/migra_manual']">
+        <i class="bi bi-journal-arrow-up"></i> <br />
+        Ingresar migración manual
+      </button>
+      <button
+        class="bi bi-door-open-fill"
+        style="font-size: 3rem; border-radius: 10px"
+      ></button>
+      <img
+        src="https://www.iconarchive.com/download/i98238/dakirby309/simply-styled/Control-Panel.ico"
+        alt=""
+      />
+    </div>
+  </div>
 </body>
