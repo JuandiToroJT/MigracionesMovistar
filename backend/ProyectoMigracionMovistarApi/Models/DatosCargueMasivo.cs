@@ -33,7 +33,7 @@ namespace ProyectoMigracionMovistarApi.Models
         /// <value>Archivo con los datos</value>
 
         [DataMember(Name="archivo")]
-        public byte[] Archivo { get; set; }
+        public byte[]? Archivo { get; set; }
 
         /// <summary>
         /// Formato
@@ -41,7 +41,7 @@ namespace ProyectoMigracionMovistarApi.Models
         /// <value>Formato</value>
 
         [DataMember(Name="formato")]
-        public string Formato { get; set; }
+        public string? Formato { get; set; }
 
         /// <summary>
         /// Returns the string presentation of the object

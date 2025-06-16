@@ -54,7 +54,7 @@ namespace ProyectoMigracionMovistarApi.Controllers
         {
             try
             {
-                ProcesoBL reglasNegocio = new ProcesoBL(_dbContextFactory);
+                ProcesoBL reglasNegocio = new ProcesoBL(_dbContextFactory, baseDatosExterna);
                 List<ProcesoResumen> respuesta = reglasNegocio.ObtenerProcesos(tipo);
                 return new ObjectResult(respuesta);
             }
@@ -82,7 +82,7 @@ namespace ProyectoMigracionMovistarApi.Controllers
         {
             try
             {
-                ProcesoBL reglasNegocio = new ProcesoBL(_dbContextFactory);
+                ProcesoBL reglasNegocio = new ProcesoBL(_dbContextFactory, baseDatosExterna);
                 List<DetalleProcesoItem> respuesta = reglasNegocio.ObtenerDetalleProcesos(idProceso, tipo);
                 return new ObjectResult(respuesta);
             }
@@ -110,7 +110,7 @@ namespace ProyectoMigracionMovistarApi.Controllers
         {
             try
             {
-                ProcesoBL reglasNegocio = new ProcesoBL(_dbContextFactory);
+                ProcesoBL reglasNegocio = new ProcesoBL(_dbContextFactory, baseDatosExterna);
                 RespuestaTransaccion respuesta = reglasNegocio.RealizarMigracionManual(usuario, body);
                 respuesta.Url = new Uri(Request.GetDisplayUrl()).ToString();
                 return new ObjectResult(respuesta);
@@ -138,7 +138,7 @@ namespace ProyectoMigracionMovistarApi.Controllers
         {
             try
             {
-                ProcesoBL reglasNegocio = new ProcesoBL(_dbContextFactory);
+                ProcesoBL reglasNegocio = new ProcesoBL(_dbContextFactory, baseDatosExterna);
                 RespuestaTransaccion respuesta = await reglasNegocio.RealizarMigracionMasiva(usuario);
                 respuesta.Url = new Uri(Request.GetDisplayUrl()).ToString();
                 return new ObjectResult(respuesta);
@@ -167,8 +167,8 @@ namespace ProyectoMigracionMovistarApi.Controllers
         {
             try
             {
-                ProcesoBL reglasNegocio = new ProcesoBL(_dbContextFactory);
-                RespuestaTransaccion respuesta = await reglasNegocio.RealizarCargueUsuarios(usuario, body, baseDatosExterna);
+                ProcesoBL reglasNegocio = new ProcesoBL(_dbContextFactory, baseDatosExterna);
+                RespuestaTransaccion respuesta = await reglasNegocio.RealizarCargueUsuarios(usuario, body);
                 respuesta.Url = new Uri(Request.GetDisplayUrl()).ToString();
                 return new ObjectResult(respuesta);
             }

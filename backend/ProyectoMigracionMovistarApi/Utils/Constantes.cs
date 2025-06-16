@@ -9,8 +9,8 @@
         public const int CodigoTigo = 2;
         public const int CodigoClaro = 3;
 
-        public const int CantidadHilosMigracion = 10;
-        public const int TamañoLoteMigracion = 100;
+        public const int CantidadHilos = 10;
+        public const int TamañoLote = 500;
 
         public static readonly List<string> PrefijosParaTigo = new()
         {

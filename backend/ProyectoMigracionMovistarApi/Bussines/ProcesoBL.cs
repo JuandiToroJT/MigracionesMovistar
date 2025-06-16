@@ -1,11 +1,16 @@
 ﻿using ExcelDataReader;
+using Microsoft.AspNetCore.Components.Forms;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Routing;
 using Microsoft.EntityFrameworkCore;
+using MySql.Data.MySqlClient;
 using ProyectoMigracionMovistarApi.Entities;
 using ProyectoMigracionMovistarApi.Models;
 using ProyectoMigracionMovistarApi.Utils;
+using System;
+using System.Collections.Concurrent;
 using System.Data;
+using System.Diagnostics;
 using System.Text;
 
 namespace ProyectoMigracionMovistarApi.Bussines
@@ -13,9 +18,11 @@ namespace ProyectoMigracionMovistarApi.Bussines
     public class ProcesoBL
     {
         private readonly IDbContextFactory<MigracionDbContext> _dbContextFactory;
-        public ProcesoBL(IDbContextFactory<MigracionDbContext> dbContextFactory)
+        private readonly string _bdExternaMovistar;
+        public ProcesoBL(IDbContextFactory<MigracionDbContext> dbContextFactory, string bdExternaMovistar)
         {
             _dbContextFactory = dbContextFactory;
+            _bdExternaMovistar = bdExternaMovistar;
         }
 
         internal List<ProcesoResumen> ObtenerProcesos(string tipo)
@@ -155,6 +162,29 @@ namespace ProyectoMigracionMovistarApi.Bussines
             };
         }
 
+        private int IniciarProceso(string origen, int idUsuario, MigracionDbContext dbContext, int totalRegistros)
+        {
+            if (dbContext.Procesos.Any(p => p.EstadoProceso == "PRO"))
+                throw new ReglasExcepcion("PMIGR007", "Ya existe un proceso en curso. Por favor, espere a que finalice antes de iniciar uno nuevo");
+
+            var nuevoProceso = new Proceso
+            {
+                Origen = origen,
+                EstadoProceso = "PRO",
+                TotalRegistros = totalRegistros,
+                CantidadExito = 0,
+                CantidadDuplicado = 0,
+                CantidadError = 0,
+                Notas = "Proceso iniciado correctamente",
+                IdUsuario = idUsuario
+            };
+
+            dbContext.Procesos.Add(nuevoProceso);
+            dbContext.SaveChanges();
+
+            return nuevoProceso.IdProceso;
+        }
+
         internal async Task<RespuestaTransaccion> RealizarMigracionMasiva(string usuario)
         {
             using var dbContext = _dbContextFactory.CreateDbContext();
@@ -202,160 +232,6 @@ namespace ProyectoMigracionMovistarApi.Bussines
                 NumeroRegistro = idProceso,
                 Notas = $"Proceso de migración masiva iniciado. ID del proceso: {idProceso}"
             };
-        }
-
-        internal async Task<RespuestaTransaccion> RealizarCargueUsuarios(string usuario, DatosCargueMasivo body, string baseDatosExterna)
-        {
-            using var dbContext = _dbContextFactory.CreateDbContext();
-
-            var usuarioRegistra = dbContext.Usuarios
-                .FirstOrDefault(x => x.NumeroIdentificacion == usuario);
-
-            if (usuarioRegistra == null)
-                throw new ReglasExcepcion("PMARCU001", "Usuario no encontrado");
-            if (usuarioRegistra.Rol == "cliente")
-                throw new ReglasExcepcion("PMARCU002", "No tiene permisos para realizar el cargue masivo");
-
-            int totalRegistros = 0;
-            List<Usuario> usuariosCargados = new List<Usuario>();
-            if (body.Archivo != null)
-            {
-                DataTable datosUsuarios = CargarDatosDesdeArchivo(body.Archivo, body.Formato);
-                Dictionary<string, Usuario> mapaUsuarios = new Dictionary<string, Usuario>();
-
-                foreach (DataRow fila in datosUsuarios.Rows)
-                {
-                    string numeroIdentificacion = fila["NumeroIdentificacion"]?.ToString()?.Trim() ?? "";
-
-                    if (!mapaUsuarios.TryGetValue(numeroIdentificacion, out var usuarioitem))
-                    {
-                        var hasher = new PasswordHasher<Usuario>();
-                        usuarioitem = new Usuario
-                        {
-                            TipoIdentificacion = fila["TipoIdentificacionId"]?.ToString()?.Trim(),
-                            NumeroIdentificacion = numeroIdentificacion,
-                            Nombre = fila["NombreCompleto"]?.ToString()?.Trim(),
-                            Correo = fila["CorreoElectronico"]?.ToString()?.Trim(),
-                            Celular = fila["NumeroCelular"]?.ToString()?.Trim(),
-                            Clave = null,
-                            Rol = "cliente",
-                            Cuenta = new List<Cuenta>()
-                        };
-
-                        usuarioitem.Clave = hasher.HashPassword(usuarioitem, "123");
-
-                        mapaUsuarios[numeroIdentificacion] = usuarioitem;
-                    }
-
-                    var cuenta = new Cuenta
-                    {
-                        NumeroCuenta = fila["NumeroCuenta"]?.ToString()?.Trim(),
-                        IdServicio = int.TryParse(fila["PlanId"]?.ToString(), out var idPlan) ? idPlan : (int?)null,
-                        Migrada = "N"
-                    };
-
-                    usuarioitem.Cuenta.Add(cuenta);
-                    totalRegistros++;
-                }
-
-                usuariosCargados = mapaUsuarios.Values.ToList();
-            }
-
-            //Seccion para conectar y poblar de la bd externa
-
-
-            int idProceso = IniciarProceso("Cargue", usuarioRegistra.IdUsuario, dbContext, totalRegistros);
-
-            _ = Task.Run(() =>
-            {
-                try
-                {
-                    EjecutarCargueMasivo(usuarioRegistra, idProceso, usuariosCargados);
-                }
-                catch
-                {
-                }
-            });
-
-            if (usuarioRegistra.Rol == "admin")
-            {
-                var nuevoAuditoria = new Auditoria
-                {
-                    TipoEvento = "Cargue",
-                    Descripcion = $"Cargue masivo realizado por el administrador {usuarioRegistra.NumeroIdentificacion}",
-                    IdUsuario = usuarioRegistra.IdUsuario
-                };
-
-                dbContext.Auditoria.Add(nuevoAuditoria);
-                dbContext.SaveChanges();
-            }
-
-            return new RespuestaTransaccion()
-            {
-                NumeroRegistro = idProceso,
-                Notas = $"Proceso de cargue masivo iniciado. ID del proceso: {idProceso}"
-            };
-        }
-
-        private DataTable CargarDatosDesdeArchivo(byte[] archivo, string formato)
-        {
-            var tipo = formato.ToUpper().Trim();
-
-            if (tipo == "CSV")
-                return LeerCsvDesdeBytes(archivo);
-            else if (tipo == "XLS" || tipo == "XLSX")
-                return LeerExcelDesdeBytes(archivo);
-            else
-                throw new ReglasExcepcion("PMARCU003", "Formato de archivo no soportado: " + tipo);
-        }
-
-        private DataTable LeerCsvDesdeBytes(byte[] archivo)
-        {
-            var dt = new DataTable();
-            using (var ms = new MemoryStream(archivo))
-            using (var reader = new StreamReader(ms, Encoding.UTF8))
-            {
-                bool columnasCargadas = false;
-
-                while (!reader.EndOfStream)
-                {
-                    var linea = reader.ReadLine();
-                    if (string.IsNullOrWhiteSpace(linea)) continue;
-
-                    var valores = linea.Split(',');
-
-                    if (!columnasCargadas)
-                    {
-                        foreach (var columna in valores)
-                            dt.Columns.Add(columna.Trim());
-                        columnasCargadas = true;
-                    }
-                    else
-                    {
-                        dt.Rows.Add(valores);
-                    }
-                }
-            }
-            return dt;
-        }
-
-        private DataTable LeerExcelDesdeBytes(byte[] archivo)
-        {
-            Encoding.RegisterProvider(CodePagesEncodingProvider.Instance);
-
-            using (var ms = new MemoryStream(archivo))
-            using (var reader = ExcelReaderFactory.CreateReader(ms))
-            {
-                var result = reader.AsDataSet(new ExcelDataSetConfiguration()
-                {
-                    ConfigureDataTable = (_) => new ExcelDataTableConfiguration
-                    {
-                        UseHeaderRow = true
-                    }
-                });
-
-                return result.Tables[0];
-            }
         }
 
         private void EjecutarMigracionMasivaPorLotes(Usuario usuarioRegistra, int idProceso)
@@ -418,7 +294,169 @@ namespace ProyectoMigracionMovistarApi.Bussines
             }
         }
 
-        private void EjecutarCargueMasivo(Usuario usuarioRegistra, int idProceso, List<Usuario> usuariosCargados)
+        internal async Task<RespuestaTransaccion> RealizarCargueUsuarios(string usuario, DatosCargueMasivo body)
+        {
+            using var dbContext = _dbContextFactory.CreateDbContext();
+
+            var usuarioRegistra = dbContext.Usuarios
+                .FirstOrDefault(x => x.NumeroIdentificacion == usuario);
+
+            if (usuarioRegistra == null)
+                throw new ReglasExcepcion("PMARCU001", "Usuario no encontrado");
+            if (usuarioRegistra.Rol == "cliente")
+                throw new ReglasExcepcion("PMARCU002", "No tiene permisos para realizar el cargue masivo");
+
+            int totalRegistros = 0;
+            List<Usuario> usuariosCargados = new List<Usuario>();
+            if (body.Archivo != null && body.Archivo.Length > 0 && !string.IsNullOrWhiteSpace(body.Formato))
+            {
+                DataTable datosUsuarios = CargarDatosDesdeArchivo(body.Archivo, body.Formato);
+                Dictionary<string, Usuario> mapaUsuarios = new Dictionary<string, Usuario>();
+
+                foreach (DataRow fila in datosUsuarios.Rows)
+                {
+                    string numeroIdentificacion = fila["NumeroIdentificacion"]?.ToString()?.Trim() ?? "";
+
+                    if (!mapaUsuarios.TryGetValue(numeroIdentificacion, out var usuarioitem))
+                    {
+                        var hasher = new PasswordHasher<Usuario>();
+                        usuarioitem = new Usuario
+                        {
+                            TipoIdentificacion = fila["TipoIdentificacionId"]?.ToString()?.Trim(),
+                            NumeroIdentificacion = numeroIdentificacion,
+                            Nombre = fila["NombreCompleto"]?.ToString()?.Trim(),
+                            Correo = fila["CorreoElectronico"]?.ToString()?.Trim(),
+                            Celular = fila["NumeroCelular"]?.ToString()?.Trim(),
+                            Clave = null,
+                            Rol = "cliente",
+                            Cuenta = new List<Cuenta>()
+                        };
+
+                        usuarioitem.Clave = hasher.HashPassword(usuarioitem, "123");
+
+                        mapaUsuarios[numeroIdentificacion] = usuarioitem;
+                    }
+
+                    var cuenta = new Cuenta
+                    {
+                        NumeroCuenta = fila["NumeroCuenta"]?.ToString()?.Trim(),
+                        IdServicio = int.TryParse(fila["PlanId"]?.ToString(), out var idPlan) ? idPlan : (int?)null,
+                        Migrada = "N"
+                    };
+
+                    usuarioitem.Cuenta.Add(cuenta);
+                    totalRegistros++;
+                }
+
+                usuariosCargados = mapaUsuarios.Values.ToList();
+            }
+
+            int totalExterno = ObtenerTotalDesdeMySQL();
+
+            int idProceso = IniciarProceso("Cargue", usuarioRegistra.IdUsuario, dbContext, totalRegistros + totalExterno);
+
+            _ = Task.Run(async () =>
+            {
+                try
+                {
+                    await EjecutarCargueMasivo(usuarioRegistra, idProceso, usuariosCargados, totalExterno);
+                }
+                catch
+                {
+                }
+            });
+
+            if (usuarioRegistra.Rol == "admin")
+            {
+                var nuevoAuditoria = new Auditoria
+                {
+                    TipoEvento = "Cargue",
+                    Descripcion = $"Cargue masivo realizado por el administrador {usuarioRegistra.NumeroIdentificacion}",
+                    IdUsuario = usuarioRegistra.IdUsuario
+                };
+
+                dbContext.Auditoria.Add(nuevoAuditoria);
+                dbContext.SaveChanges();
+            }
+
+            return new RespuestaTransaccion()
+            {
+                NumeroRegistro = idProceso,
+                Notas = $"Proceso de cargue masivo iniciado. ID del proceso: {idProceso}"
+            };
+        }
+
+        private DataTable CargarDatosDesdeArchivo(byte[] archivo, string formato)
+        {
+            var tipo = formato.ToUpper().Trim();
+
+            if (tipo == "CSV")
+                return LeerCsvDesdeBytes(archivo);
+            else if (tipo == "XLS" || tipo == "XLSX")
+                return LeerExcelDesdeBytes(archivo);
+            else
+                throw new ReglasExcepcion("PMARCU007", "Formato de archivo no soportado: " + formato);
+        }
+
+        private DataTable LeerCsvDesdeBytes(byte[] archivo)
+        {
+            var dt = new DataTable();
+            using (var ms = new MemoryStream(archivo))
+            using (var reader = new StreamReader(ms, Encoding.UTF8))
+            {
+                bool columnasCargadas = false;
+
+                while (!reader.EndOfStream)
+                {
+                    var linea = reader.ReadLine();
+                    if (string.IsNullOrWhiteSpace(linea)) continue;
+
+                    var valores = linea.Split(',');
+
+                    if (!columnasCargadas)
+                    {
+                        foreach (var columna in valores)
+                            dt.Columns.Add(columna.Trim());
+                        columnasCargadas = true;
+                    }
+                    else
+                    {
+                        dt.Rows.Add(valores);
+                    }
+                }
+            }
+            return dt;
+        }
+
+        private DataTable LeerExcelDesdeBytes(byte[] archivo)
+        {
+            Encoding.RegisterProvider(CodePagesEncodingProvider.Instance);
+
+            using (var ms = new MemoryStream(archivo))
+            using (var reader = ExcelReaderFactory.CreateReader(ms))
+            {
+                var result = reader.AsDataSet(new ExcelDataSetConfiguration()
+                {
+                    ConfigureDataTable = (_) => new ExcelDataTableConfiguration
+                    {
+                        UseHeaderRow = true
+                    }
+                });
+
+                return result.Tables[0];
+            }
+        }
+
+        private int ObtenerTotalDesdeMySQL()
+        {
+            using var con = new MySqlConnection(_bdExternaMovistar);
+            con.Open();
+
+            using var cmd = new MySqlCommand("SELECT COUNT(*) FROM users", con);
+            return Convert.ToInt32(cmd.ExecuteScalar());
+        }
+
+        private async Task EjecutarCargueMasivo(Usuario usuarioRegistra, int idProceso, List<Usuario> usuariosCargados, int totalExterno)
         {
             using var dbContext = _dbContextFactory.CreateDbContext();
 
@@ -428,6 +466,11 @@ namespace ProyectoMigracionMovistarApi.Bussines
 
             try
             {
+                var dictOperadores = dbContext.Operadors
+                    .ToDictionary(o => o.Nombre.ToLower(), o => o.IdOperador);
+                var listaServicios = dbContext.Servicios.ToList();
+
+                await ProcesarMySQLAsync(usuarioRegistra, totalExterno, proceso, dictOperadores, listaServicios);
                 foreach (var item in usuariosCargados)
                 {
                     using var loteContext = _dbContextFactory.CreateDbContext();
@@ -435,7 +478,7 @@ namespace ProyectoMigracionMovistarApi.Bussines
                 }
 
                 proceso.EstadoProceso = "FIN";
-                proceso.Notas = "Cargue masivo finalizada correctamente";
+                proceso.Notas = "Cargue masivo finalizado correctamente";
                 proceso.Fecha = DateTime.Now;
                 dbContext.SaveChanges();
             }
@@ -450,27 +493,120 @@ namespace ProyectoMigracionMovistarApi.Bussines
             }
         }
 
-        private int IniciarProceso(string origen, int idUsuario, MigracionDbContext dbContext, int totalRegistros)
+        private async Task ProcesarMySQLAsync(Usuario usuarioRegistra, int totalExterno, Proceso proceso, Dictionary<string, int> dictOperadores, List<Servicio> listaServicios)
         {
-            if (dbContext.Procesos.Any(p => p.EstadoProceso == "PRO"))
-                throw new ReglasExcepcion("PMIGR007", "Ya existe un proceso en curso. Por favor, espere a que finalice antes de iniciar uno nuevo");
+            int batchSize = Constantes.TamañoLote;
+            int lotes = (int)Math.Ceiling((double)totalExterno / batchSize);
 
-            var nuevoProceso = new Proceso
+            var semaphore = new SemaphoreSlim(Constantes.CantidadHilos);
+            var tareas = new List<Task>();
+
+            for (int i = 0; i < lotes; i++)
             {
-                Origen = origen,
-                EstadoProceso = "PRO",
-                TotalRegistros = totalRegistros,
-                CantidadExito = 0,
-                CantidadDuplicado = 0,
-                CantidadError = 0,
-                Notas = "Proceso iniciado correctamente",
-                IdUsuario = idUsuario
+                int offset = i * batchSize;
+
+                await semaphore.WaitAsync();
+
+                var tarea = Task.Run(async () =>
+                {
+                    try
+                    {
+                        await ProcesarBatchDesdeMySQL(offset, batchSize, usuarioRegistra, proceso, dictOperadores, listaServicios);
+                    }
+                    finally
+                    {
+                        semaphore.Release();
+                    }
+                });
+
+                tareas.Add(tarea);
+            }
+
+            await Task.WhenAll(tareas);
+        }
+
+        private async Task ProcesarBatchDesdeMySQL(int offset, int limit, Usuario usuarioRegistra, Proceso proceso, Dictionary<string, int> dictOperadores, List<Servicio> listaServicios)
+        {
+            var usuarios = new Dictionary<string, Usuario>();
+
+            string query = @"
+                SELECT nombrecompleto, tipo_identificacion, numero_identificacion,
+                correo_electronico, numero_celular, numero_cuenta, plan, operador_actual
+                FROM users ORDER BY id LIMIT @limit OFFSET @offset";
+
+            using var con = new MySqlConnection(_bdExternaMovistar);
+            await con.OpenAsync();
+
+            using var cmd = new MySqlCommand(query, con);
+            cmd.Parameters.AddWithValue("@limit", limit);
+            cmd.Parameters.AddWithValue("@offset", offset);
+
+            using var reader = await cmd.ExecuteReaderAsync();
+            while (await reader.ReadAsync())
+            {
+                string id = reader["numero_identificacion"]?.ToString()?.Trim() ?? "";
+                if (!usuarios.TryGetValue(id, out var u))
+                {
+                    u = new Usuario
+                    {
+                        Nombre = reader["nombrecompleto"]?.ToString()?.Trim(),
+                        TipoIdentificacion = reader["tipo_identificacion"]?.ToString()?.Trim(),
+                        NumeroIdentificacion = id,
+                        Correo = reader["correo_electronico"]?.ToString()?.Trim(),
+                        Celular = reader["numero_celular"]?.ToString()?.Trim(),
+                        Clave = null,
+                        Rol = "cliente",
+                        Cuenta = new List<Cuenta>()
+                    };
+
+                    var hasher = new PasswordHasher<Usuario>();
+                    u.Clave = hasher.HashPassword(u, "123");
+
+                    usuarios[id] = u;
+                }
+
+                int? idServicio = ConvertirPlanAId(reader["plan"]?.ToString()?.Trim(), reader["operador_actual"]?.ToString()?.Trim(), dictOperadores, listaServicios);
+
+                u.Cuenta.Add(new Cuenta
+                {
+                    NumeroCuenta = reader["numero_cuenta"]?.ToString()?.Trim(),
+                    IdServicio = idServicio,
+                    Migrada = "N"
+                });
+            }
+
+            var usuariosCargados = usuarios.Values.ToList();
+            foreach (var item in usuariosCargados)
+            {
+                using var loteContext = _dbContextFactory.CreateDbContext();
+                ProcesarUsuarioCargue(item, loteContext, proceso);
+            }
+        }
+
+        private int? ConvertirPlanAId(string plan, string operador, Dictionary<string, int> dictOperadores, List<Servicio> listaServicios)
+        {
+            if (string.IsNullOrWhiteSpace(plan) || string.IsNullOrWhiteSpace(operador))
+                return null;
+
+            string tipo = plan.ToLower() switch
+            {
+                "empresarial" => "Fibra",
+                "prepago" => "Movil",
+                "pospago" => "Movil",
+                "datos" => "Banda",
+                _ => null
             };
 
-            dbContext.Procesos.Add(nuevoProceso);
-            dbContext.SaveChanges();
+            if (tipo == null) return null;
 
-            return nuevoProceso.IdProceso;
+            if (!dictOperadores.TryGetValue(operador.ToLower(), out var idOperador))
+                return null;
+
+            return listaServicios
+                .FirstOrDefault(s =>
+                    s.IdOperador == idOperador &&
+                    s.Tipo.Equals(tipo, StringComparison.OrdinalIgnoreCase))
+                ?.IdServicio;
         }
 
         private void ProcesarUsuarioCargue(Usuario item, MigracionDbContext dbContext, Proceso proceso)
