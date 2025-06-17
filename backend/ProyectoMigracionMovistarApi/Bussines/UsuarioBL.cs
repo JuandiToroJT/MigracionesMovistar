@@ -35,6 +35,9 @@ namespace ProyectoMigracionMovistarApi.Bussines
             if (result == PasswordVerificationResult.Failed)
                 throw new ReglasExcepcion("PMAATU002", "Usuario o contraseña incorrectos.");
 
+            if (usuario.Rol != "admin")
+                throw new ReglasExcepcion("PMAATU003", "Usuario sin permisos de administrador.");
+
             return new RespuestaTransaccion()
             {
                 NumeroRegistro = usuario.IdUsuario,
@@ -68,7 +71,7 @@ namespace ProyectoMigracionMovistarApi.Bussines
                 Correo = body.Correo,
                 Celular = body.Celular,
                 Cuenta = new List<Cuenta>(),
-                Rol = "cliente"
+                Rol = "admin"
             };
 
             var hasher = new PasswordHasher<Usuario>();
