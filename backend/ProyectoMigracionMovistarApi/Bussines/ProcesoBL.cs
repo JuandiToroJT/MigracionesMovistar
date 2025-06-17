@@ -35,7 +35,7 @@ namespace ProyectoMigracionMovistarApi.Bussines
                 query = query.Where(p => p.Origen == tipo);
 
             var procesos = query
-                .OrderByDescending(p => p.Fecha)
+                .OrderByDescending(p => p.IdProceso)
                 .Select(p => new ProcesoResumen
                 {
                     IdProceso = p.IdProceso,
@@ -71,7 +71,7 @@ namespace ProyectoMigracionMovistarApi.Bussines
                 query = query.Where(p => p.TipoProceso == tipo);
 
             var detalles = query
-                .OrderByDescending(d => d.Fecha)
+                .OrderByDescending(d => d.IdDetalle)
                 .Select(d => new DetalleProcesoItem
                 {
                     IdProceso = d.IdProceso,
@@ -203,11 +203,11 @@ namespace ProyectoMigracionMovistarApi.Bussines
 
             int idProceso = IniciarProceso("Migracion", usuarioRegistra.IdUsuario, dbContext, totalRegistros);
 
-            _ = Task.Run(() =>
+            _ = Task.Run(async () =>
             {
                 try
                 {
-                    EjecutarMigracionMasivaPorLotes(usuarioRegistra, idProceso);
+                    await EjecutarMigracionMasivaPorLotes(usuarioRegistra, idProceso);
                 }
                 catch
                 {
@@ -234,7 +234,7 @@ namespace ProyectoMigracionMovistarApi.Bussines
             };
         }
 
-        private void EjecutarMigracionMasivaPorLotes(Usuario usuarioRegistra, int idProceso)
+        private async Task EjecutarMigracionMasivaPorLotes(Usuario usuarioRegistra, int idProceso)
         {
             using var dbContext = _dbContextFactory.CreateDbContext();
 
@@ -248,9 +248,13 @@ namespace ProyectoMigracionMovistarApi.Bussines
                 int skip = 0;
                 bool hayMas = true;
 
+                var tareas = new List<Task>();
+                var semaphore = new SemaphoreSlim(Constantes.CantidadHilos);
+
                 while (hayMas)
                 {
-                    var cuentasMigrables = dbContext.Cuenta
+                    using var loteDbContext = _dbContextFactory.CreateDbContext();
+                    var cuentasMigrables = loteDbContext.Cuenta
                         .Include(c => c.IdUsuarioNavigation)
                         .Where(c => c.Migrada != "S")
                         .OrderBy(c => c.IdCuenta)
@@ -270,13 +274,30 @@ namespace ProyectoMigracionMovistarApi.Bussines
 
                     foreach (var grupo in usuariosConCuentas)
                     {
-                        using var loteContext = _dbContextFactory.CreateDbContext();
+                        await semaphore.WaitAsync();
+
                         var usuario = grupo.Key;
                         var cuentas = grupo.ToList();
 
-                        ProcesarUsuarioMigracion(usuario, cuentas, loteContext, proceso, out string notas, out string codigoError);
+                        var tarea = Task.Run(() =>
+                        {
+                            try
+                            {
+                                using var usuarioContext = _dbContextFactory.CreateDbContext();
+                                ProcesarUsuarioMigracion(usuario, cuentas, usuarioContext, idProceso,
+                                    out string notas, out string codigoError);
+                            }
+                            finally
+                            {
+                                semaphore.Release();
+                            }
+                        });
+
+                        tareas.Add(tarea);
                     }
                 }
+
+                await Task.WhenAll(tareas);
 
                 proceso.EstadoProceso = "FIN";
                 proceso.Notas = "Migración masiva finalizada correctamente";
@@ -470,11 +491,11 @@ namespace ProyectoMigracionMovistarApi.Bussines
                     .ToDictionary(o => o.Nombre.ToLower(), o => o.IdOperador);
                 var listaServicios = dbContext.Servicios.ToList();
 
-                await ProcesarMySQLAsync(usuarioRegistra, totalExterno, proceso, dictOperadores, listaServicios);
+                await ProcesarMySQLAsync(usuarioRegistra, totalExterno, idProceso, dictOperadores, listaServicios);
                 foreach (var item in usuariosCargados)
                 {
                     using var loteContext = _dbContextFactory.CreateDbContext();
-                    ProcesarUsuarioCargue(item, loteContext, proceso);
+                    ProcesarUsuarioCargue(item, loteContext, idProceso);
                 }
 
                 proceso.EstadoProceso = "FIN";
@@ -493,7 +514,7 @@ namespace ProyectoMigracionMovistarApi.Bussines
             }
         }
 
-        private async Task ProcesarMySQLAsync(Usuario usuarioRegistra, int totalExterno, Proceso proceso, Dictionary<string, int> dictOperadores, List<Servicio> listaServicios)
+        private async Task ProcesarMySQLAsync(Usuario usuarioRegistra, int totalExterno, int idProceso, Dictionary<string, int> dictOperadores, List<Servicio> listaServicios)
         {
             int batchSize = Constantes.TamañoLote;
             int lotes = (int)Math.Ceiling((double)totalExterno / batchSize);
@@ -511,7 +532,7 @@ namespace ProyectoMigracionMovistarApi.Bussines
                 {
                     try
                     {
-                        await ProcesarBatchDesdeMySQL(offset, batchSize, usuarioRegistra, proceso, dictOperadores, listaServicios);
+                        await ProcesarBatchDesdeMySQL(offset, batchSize, usuarioRegistra, idProceso, dictOperadores, listaServicios);
                     }
                     finally
                     {
@@ -525,7 +546,7 @@ namespace ProyectoMigracionMovistarApi.Bussines
             await Task.WhenAll(tareas);
         }
 
-        private async Task ProcesarBatchDesdeMySQL(int offset, int limit, Usuario usuarioRegistra, Proceso proceso, Dictionary<string, int> dictOperadores, List<Servicio> listaServicios)
+        private async Task ProcesarBatchDesdeMySQL(int offset, int limit, Usuario usuarioRegistra, int idProceso, Dictionary<string, int> dictOperadores, List<Servicio> listaServicios)
         {
             var usuarios = new Dictionary<string, Usuario>();
 
@@ -579,7 +600,7 @@ namespace ProyectoMigracionMovistarApi.Bussines
             foreach (var item in usuariosCargados)
             {
                 using var loteContext = _dbContextFactory.CreateDbContext();
-                ProcesarUsuarioCargue(item, loteContext, proceso);
+                ProcesarUsuarioCargue(item, loteContext, idProceso);
             }
         }
 
@@ -609,16 +630,13 @@ namespace ProyectoMigracionMovistarApi.Bussines
                 ?.IdServicio;
         }
 
-        private void ProcesarUsuarioCargue(Usuario item, MigracionDbContext dbContext, Proceso proceso)
+        private void ProcesarUsuarioCargue(Usuario item, MigracionDbContext dbContext, int numeroProceso)
         {
-            int? numeroProceso = null;
-            if (proceso != null)
-                numeroProceso = proceso.IdProceso;
-
             if (item.Cuenta == null || !item.Cuenta.Any())
             {
-                if (proceso != null)
-                    proceso.CantidadError ++;
+                dbContext.Database.ExecuteSqlRaw(
+                    "UPDATE Proceso SET cantidad_error = cantidad_error + 1 WHERE id_proceso = {0}",
+                    numeroProceso);
 
                 RegistrarDetalleCargue(dbContext, numeroProceso, "ERR", "El usuario no tiene cuentas asociadas.", "PMARCU003");
                 dbContext.SaveChanges();
@@ -633,8 +651,9 @@ namespace ProyectoMigracionMovistarApi.Bussines
             {
                 foreach (var cuenta in item.Cuenta)
                 {
-                    if (proceso != null)
-                        proceso.CantidadError++;
+                    dbContext.Database.ExecuteSqlRaw(
+                        "UPDATE Proceso SET cantidad_error = cantidad_error + 1 WHERE id_proceso = {0}",
+                        numeroProceso);
 
                     RegistrarDetalleCargue(dbContext, numeroProceso, "ERR", $"Faltan campos obligatorios para el usuario '{item.NumeroIdentificacion}'.", "PMARCU005");
                 }
@@ -689,8 +708,9 @@ namespace ProyectoMigracionMovistarApi.Bussines
 
                     estado = "APL";
 
-                    if (proceso != null)
-                        proceso.CantidadExito++;
+                    dbContext.Database.ExecuteSqlRaw(
+                        "UPDATE Proceso SET cantidad_exito = cantidad_exito + 1 WHERE id_proceso = {0}",
+                        numeroProceso);
 
                     RegistrarDetalleCargue(dbContext, numeroProceso, estado, $"Cuenta '{cuenta.NumeroCuenta}' se registro correctamente para el usuario '{item.NumeroIdentificacion}'.", "", cuenta.IdCuenta);
                     dbContext.SaveChanges();
@@ -699,12 +719,17 @@ namespace ProyectoMigracionMovistarApi.Bussines
                 {
                     var mensajeError = APIUtil.RecuperarExcepcionSistema(ex);
 
-                    if (proceso != null)
+                    if (estado == "DUP")
                     {
-                        if (estado == "DUP")
-                            proceso.CantidadDuplicado++;
-                        else
-                            proceso.CantidadError++;
+                        dbContext.Database.ExecuteSqlRaw(
+                            "UPDATE Proceso SET cantidad_duplicado = cantidad_duplicado + 1 WHERE id_proceso = {0}",
+                            numeroProceso);
+                    }
+                    else
+                    {
+                        dbContext.Database.ExecuteSqlRaw(
+                            "UPDATE Proceso SET cantidad_error = cantidad_error + 1 WHERE id_proceso = {0}",
+                            numeroProceso);
                     }
 
                     int? idCuenta = null;
@@ -730,21 +755,18 @@ namespace ProyectoMigracionMovistarApi.Bussines
             });
         }
 
-        private void ProcesarUsuarioMigracion(Usuario personaMigrar, List<Cuenta> cuentas, MigracionDbContext dbContext, Proceso proceso, out string notas, out string codigoError)
+        private void ProcesarUsuarioMigracion(Usuario personaMigrar, List<Cuenta> cuentas, MigracionDbContext dbContext, int? numeroProceso, out string notas, out string codigoError)
         {
             notas = "";
             codigoError = "";
 
-            int? numeroProceso = null;
-            if (proceso != null)
-                numeroProceso = proceso.IdProceso;
-
             if (personaMigrar == null)
             {
-                if (proceso != null)
+                if (numeroProceso.HasValue)
                 {
-                    proceso.CantidadError += cuentas.Count;
-                    dbContext.SaveChanges();
+                    dbContext.Database.ExecuteSqlRaw(
+                        "UPDATE Proceso SET cantidad_error = cantidad_error + " + cuentas.Count + " WHERE id_proceso = {0}",
+                        numeroProceso);
                 }
 
                 notas = "El usuario a migrar no puede ser nulo.";
@@ -812,8 +834,12 @@ namespace ProyectoMigracionMovistarApi.Bussines
 
                     estado = "APL";
 
-                    if (proceso != null)
-                        proceso.CantidadExito++;
+                    if (numeroProceso.HasValue)
+                    {
+                        dbContext.Database.ExecuteSqlRaw(
+                            "UPDATE Proceso SET cantidad_exito = cantidad_exito + 1 WHERE id_proceso = {0}",
+                            numeroProceso);
+                    }
 
                     string nombreOperadorOrigen = dbContext.Operadors.FirstOrDefault(o => o.IdOperador == origen)?.Nombre ?? "Desconocido";
                     string nombreOperadorDestino = dbContext.Operadors.FirstOrDefault(o => o.IdOperador == destino)?.Nombre ?? "Desconocido";
@@ -842,12 +868,20 @@ namespace ProyectoMigracionMovistarApi.Bussines
                     codigoError = mensajeError.CodigoError;
                     notas = mensajeError.MensajeError;
 
-                    if (proceso != null)
+                    if (numeroProceso.HasValue)
                     {
                         if (estado == "DUP")
-                            proceso.CantidadDuplicado++;
+                        {
+                            dbContext.Database.ExecuteSqlRaw(
+                                "UPDATE Proceso SET cantidad_duplicado = cantidad_duplicado + 1 WHERE id_proceso = {0}",
+                                numeroProceso);
+                        }
                         else
-                            proceso.CantidadError++;
+                        {
+                            dbContext.Database.ExecuteSqlRaw(
+                                "UPDATE Proceso SET cantidad_error = cantidad_error + 1 WHERE id_proceso = {0}",
+                                numeroProceso);
+                        }
                     }
 
                     var nuevoDetalle = new Detalle
