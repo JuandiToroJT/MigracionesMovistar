@@ -20,6 +20,10 @@ export class ConexionApiService {
     return this.http.get(this.BASE_URL_GET + '/procesos');
   }
 
+  obtenerAuditoria() {
+    return this.http.get(this.BASE_URL_GET + '/auditoria/123456789');
+  }
+
    agregarMigraManual(Migra_manual: miagra_manualModel) {
     console.log("api",Migra_manual )
     return this.http.post<string>(`${this.BASE_URL_GET}/migraciones/${Migra_manual.identificacion}/manual`, Migra_manual)
@@ -27,7 +31,7 @@ export class ConexionApiService {
   }
 
   procesarMigracionMasiva() {
-    return this.http.post<string>(`${this.BASE_URL_GET}/migraciones/123/masiva`, null)
+    return this.http.post<string>(`https://localhost:44394/migraciones/123456789/masiva`, null)
      
   }
 

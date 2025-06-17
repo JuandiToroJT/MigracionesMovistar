@@ -7,6 +7,7 @@ import { AppComponent } from './app.component';
 import { MigraManualComponent } from './migra-manual/migra-manual.component';
 import { LoginComponent } from './login/login.component';
 import { MigraAutomaticoComponent } from './migra-automatico/migra-automatico.component';
+import { AuditoriaComponent } from './auditoria/auditoria.component';
 
 import { FormsModule, ReactiveFormsModule } from '@angular/forms';
 import { RegistroUsuarioComponent } from './registro-usuario/registro-usuario.component';
@@ -18,7 +19,8 @@ import { RegistroUsuarioComponent } from './registro-usuario/registro-usuario.co
     MigraManualComponent,
     LoginComponent,
     MigraAutomaticoComponent,
-    RegistroUsuarioComponent
+    RegistroUsuarioComponent,
+    AuditoriaComponent
   ],
   imports: [
     BrowserModule,

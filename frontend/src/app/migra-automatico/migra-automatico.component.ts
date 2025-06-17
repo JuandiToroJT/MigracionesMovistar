@@ -26,7 +26,7 @@ export class MigraAutomaticoComponent {
 
   procesarMigracion() {
     const url =
-      'https://migracionproyectjt-d0bpe4g9d4eugzbc.canadacentral-01.azurewebsites.net/migraciones/123/masiva'; // Ajusta el host si es necesario
+      'https://localhost:44394/migraciones/123456789/masiva'; // Ajusta el host si es necesario
 
     this.ConexionApiService.procesarMigracionMasiva().subscribe({
       next: (respuesta) => {
@@ -114,7 +114,7 @@ export class MigraAutomaticoComponent {
   }
   archivoBase64: string | null = null;
   nombreArchivo: string = '';
-  usuario: string = '123'; // Puedes obtenerlo dinámicamente si lo deseas
+  usuario: string = '123456789'; // Puedes obtenerlo dinámicamente si lo deseas
 
   onArchivoSeleccionado(event: Event) {
     const input = event.target as HTMLInputElement;
@@ -140,7 +140,7 @@ export class MigraAutomaticoComponent {
       formato: extension,
     };
 
-    const url = `https://migracionproyectjt-d0bpe4g9d4eugzbc.canadacentral-01.azurewebsites.net/cargue/${this.usuario}/masivo`;
+    const url = `https://localhost:44394/cargue/${this.usuario}/masivo`;
 
     this.http.post(url, payload).subscribe({
       next: () => {
