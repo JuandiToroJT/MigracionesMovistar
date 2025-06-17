@@ -30,7 +30,7 @@ export class MigraAutomaticoComponent {
 
   procesarMigracion() {
     const url =
-      'https://migracionproyectjt-d0bpe4g9d4eugzbc.canadacentral-01.azurewebsites.net/migraciones/123/masiva'; // Ajusta el host si es necesario
+      'https://localhost:44394/migraciones/123456789/masiva'; // Ajusta el host si es necesario
     this.cargando = true; // Mostrar spinner
 
     this.ConexionApiService.procesarMigracionMasiva().subscribe({
@@ -72,7 +72,9 @@ export class MigraAutomaticoComponent {
         ) {
           const todosFinalizados = this.listaProcesos.every(
             (proceso: any) =>
-              proceso.estado && proceso.estado.toLowerCase() === 'fin'
+              proceso.estado &&
+              (proceso.estado.toLowerCase() === 'fin' ||
+                proceso.estado.toLowerCase() === 'err')
           );
           if (todosFinalizados && this.intervalo) {
             clearInterval(this.intervalo);
@@ -99,7 +101,7 @@ export class MigraAutomaticoComponent {
   }
   intervalo: any;
   currentPage: number = 1;
-  itemsPerPage: number = 7;
+  itemsPerPage: number = 9;
 
   get procesosPaginados(): any[] {
     const start = (this.currentPage - 1) * this.itemsPerPage;
@@ -121,7 +123,7 @@ export class MigraAutomaticoComponent {
   }
   archivoBase64: string | null = null;
   nombreArchivo: string = '';
-  usuario: string = '123'; // Puedes obtenerlo dinámicamente si lo deseas
+  usuario: string = '123456789'; // Puedes obtenerlo dinámicamente si lo deseas
 
   onArchivoSeleccionado(event: Event) {
     const input = event.target as HTMLInputElement;
@@ -140,23 +142,16 @@ export class MigraAutomaticoComponent {
   }
 
   subirArchivoExcel() {
-    if (!this.archivoBase64 || !this.nombreArchivo) {
-      Swal.fire({
-        icon: 'warning',
-        title: '⚠️ Archivo no válido',
-        text: 'Selecciona un archivo válido antes de continuar.',
-      });
-      return;
-    }
-
-    const extension = this.nombreArchivo.split('.').pop()?.toLowerCase() || '';
+    const extension =
+      this.nombreArchivo.split('.').pop()?.toLowerCase() || null;
     const payload = {
       archivo: this.archivoBase64,
       formato: extension,
     };
 
-    const url = `https://migracionproyectjt-d0bpe4g9d4eugzbc.canadacentral-01.azurewebsites.net/cargue/${this.usuario}/masivo`;
+    const url = `https://localhost:44394/cargue/${this.usuario}/masivo`;
     this.cargando1 = true; // Mostrar spinner
+
 
     this.http.post(url, payload).subscribe({
       next: () => {
@@ -184,6 +179,28 @@ export class MigraAutomaticoComponent {
       },
     });
   }
+  mostrarModal: boolean = false;
+  procesoSeleccionado: number | null = null;
+  historialProceso: any[] = [];
+  verHistorial(idProceso: number) {
+    const url = `https://migracionproyectjt-d0bpe4g9d4eugzbc.canadacentral-01.azurewebsites.net/procesos/detalle?idProceso=${idProceso}`;
+    this.http.get<any[]>(url).subscribe({
+      next: (data) => {
+        this.historialProceso = data;
+        this.procesoSeleccionado = idProceso;
+        this.mostrarModal = true;
+      },
+      error: (err) => {
+        Swal.fire('Error', 'No se pudo cargar el historial.', 'error');
+      },
+    });
+  }
+
+  cerrarModal() {
+    this.mostrarModal = false;
+    this.procesoSeleccionado = null;
+    this.historialProceso = [];
+  }
 
   ngOnInit() {
     this.cargarListado();
@@ -202,6 +219,7 @@ export class MigraAutomaticoComponent {
       cancelButtonColor: '#d33',
       confirmButtonText: 'Sí, salir',
       cancelButtonText: 'Cancelar'
+
     }).then((resultado) => {
       if (resultado.isConfirmed) {
         this.router.navigate(['/Login']);
@@ -218,6 +236,7 @@ export class MigraAutomaticoComponent {
       cancelButtonColor: '#d33',
       confirmButtonText: 'Sí, salir',
       cancelButtonText: 'Cancelar'
+
     }).then((resultado) => {
       if (resultado.isConfirmed) {
         this.router.navigate(['/migra_manual']);

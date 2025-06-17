@@ -1,0 +1,39 @@
+<body>
+    <div id="exit">
+        <div>
+            <button class="bi bi-door-open-fill" style="font-size: 3rem;" [routerLink]="('/Login')"></button>
+        </div>
+        <br>
+        <div>
+            <button class="btn btn-primary" [routerLink]="('/migra_automatico')">Volver</button>
+        </div>
+
+    </div>
+
+    <div class="container">
+        <h2>Auditoría del administrador</h2>
+        <p>
+          Esta opción permite visualizar las acciones realizadas por el administrador.
+        </p>
+        <hr>
+        <div class="table-container">
+          <table class="tabla-estados">
+            <thead>
+              <tr>
+                <th>Tipo de evento</th>
+                <th>Descripción</th>
+                <th>Fecha</th>
+              </tr>
+            </thead>
+
+            <tbody>
+              <tr *ngFor="let registro of listaAuditoria">
+                <td>{{ registro.tipoEvento }}</td>
+                <td>{{ registro.descripcion }}</td>
+                <td>{{ registro.fechaRegistro }}</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+    </div>
+</body>

@@ -10,7 +10,7 @@
         public const int CodigoClaro = 3;
 
         public const int CantidadHilos = 10;
-        public const int TamañoLote = 500;
+        public const int TamañoLote = 100;
 
         public static readonly List<string> PrefijosParaTigo = new()
         {

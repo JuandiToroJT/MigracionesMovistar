@@ -6,7 +6,7 @@ edite el archivo MSBuild. Visite https://go.microsoft.com/fwlink/?LinkID=208121 
 <Project>
   <PropertyGroup>
     <TimeStampOfAssociatedLegacyPublishXmlFile />
-    <History>True|2025-06-14T19:26:41.8416042Z||;True|2025-06-14T13:14:05.0639851-05:00||;</History>
+    <History>True|2025-06-17T16:36:41.1012660Z||;True|2025-06-17T11:19:36.5701020-05:00||;False|2025-06-17T11:14:45.4843945-05:00||;False|2025-06-17T11:12:26.9906225-05:00||;True|2025-06-14T14:26:41.8416042-05:00||;True|2025-06-14T13:14:05.0639851-05:00||;</History>
     <LastFailureDetails />
   </PropertyGroup>
 </Project>

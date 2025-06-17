@@ -7,6 +7,7 @@ import { AppComponent } from './app.component';
 import { MigraManualComponent } from './migra-manual/migra-manual.component';
 import { LoginComponent } from './login/login.component';
 import { MigraAutomaticoComponent } from './migra-automatico/migra-automatico.component';
+import { AuditoriaComponent } from './auditoria/auditoria.component';
 
 import { FormsModule, ReactiveFormsModule } from '@angular/forms';
 import { RegistroUsuarioComponent } from './registro-usuario/registro-usuario.component';
@@ -22,7 +23,9 @@ import { NgxEchartsModule } from 'ngx-echarts';
     LoginComponent,
     MigraAutomaticoComponent,
     RegistroUsuarioComponent,
+
     PanelProcessComponent,
+    AuditoriaComponent
   ],
   imports: [
     BrowserModule,
