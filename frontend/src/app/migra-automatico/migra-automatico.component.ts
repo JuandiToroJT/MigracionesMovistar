@@ -63,7 +63,7 @@ export class MigraAutomaticoComponent {
         ) {
           const todosFinalizados = this.listaProcesos.every(
             (proceso: any) =>
-              proceso.estado && proceso.estado.toLowerCase() === 'fin'
+              proceso.estado && (proceso.estado.toLowerCase() === 'fin' || proceso.estado.toLowerCase() === 'err')
           );
           if (todosFinalizados && this.intervalo) {
             clearInterval(this.intervalo);
@@ -90,7 +90,7 @@ export class MigraAutomaticoComponent {
   }
   intervalo: any;
   currentPage: number = 1;
-  itemsPerPage: number = 7;
+  itemsPerPage: number = 9;
 
   get procesosPaginados(): any[] {
     const start = (this.currentPage - 1) * this.itemsPerPage;
