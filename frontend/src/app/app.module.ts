@@ -9,6 +9,7 @@ import { LoginComponent } from './login/login.component';
 import { MigraAutomaticoComponent } from './migra-automatico/migra-automatico.component';
 
 import { FormsModule, ReactiveFormsModule } from '@angular/forms';
+import { RegistroUsuarioComponent } from './registro-usuario/registro-usuario.component';
 
 
 @NgModule({
@@ -16,7 +17,8 @@ import { FormsModule, ReactiveFormsModule } from '@angular/forms';
     AppComponent,
     MigraManualComponent,
     LoginComponent,
-    MigraAutomaticoComponent
+    MigraAutomaticoComponent,
+    RegistroUsuarioComponent
   ],
   imports: [
     BrowserModule,

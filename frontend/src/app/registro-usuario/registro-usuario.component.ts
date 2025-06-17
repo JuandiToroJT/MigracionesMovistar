@@ -1,21 +1,22 @@
+
 import { Component, OnInit } from '@angular/core';
 import { ConexionApiService } from '../shared/conexion-api.service';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { EmailValidator, FormControl, FormGroup, Validators } from '@angular/forms';
-import { miagra_manualModel } from '../shared/migra_manual.model';
 import Swal from 'sweetalert2'
+import { resgistro_usuarioModel } from '../shared/registro_usuario.model';
 
 
 @Component({
-  selector: 'app-migra-manual',
-  templateUrl: './migra-manual.component.html',
-  styleUrls: ['./migra-manual.component.scss']
+  selector: 'app-registro-usuario',
+  templateUrl: './registro-usuario.component.html',
+  styleUrls: ['./registro-usuario.component.scss']
 })
-export class MigraManualComponent implements OnInit {
+export class RegistroUsuarioComponent implements OnInit {
 
-  public formulario_migra_manual: FormGroup;
+  public formulario_registro_usuario: FormGroup;
 
-  migracion_manual = new miagra_manualModel("", "", "", "");
+  registro_usuario = new resgistro_usuarioModel("", "", "", "", "", "");
   listaProcesos: any;
 
   cargando: boolean = false;
@@ -25,12 +26,14 @@ export class MigraManualComponent implements OnInit {
     private route: ActivatedRoute,
     private router: Router,) {
 
-    this.formulario_migra_manual = new FormGroup({
+    this.formulario_registro_usuario = new FormGroup({
 
-      txttel: new FormControl('', Validators.required),
-      txtcuenta: new FormControl('', Validators.required),
+      txtnombre: new FormControl('', Validators.required),
       txtemail: new FormControl('', [Validators.required, Validators.pattern('^[^@]+@[^@]+\.[a-zA-Z]{2,}$')]),
-      txtcedula: new FormControl('', Validators.required)
+      txttel: new FormControl('', Validators.required),
+      txtselecIdent: new FormControl('', Validators.required),
+      txtnumIdent: new FormControl('', Validators.required),
+      txtclave: new FormControl('', Validators.required)
     });
   }
 
@@ -49,7 +52,7 @@ export class MigraManualComponent implements OnInit {
     // );
   }
   onSumit() {
-    if (this.formulario_migra_manual.invalid) {
+    if (this.formulario_registro_usuario.invalid) {
       //this.formulario.markAllAsTouched(); // ← Marca todos los campos para que muestren errores
       Swal.fire({
         icon: "info",
@@ -59,28 +62,31 @@ export class MigraManualComponent implements OnInit {
       });
       return;
     }
-    console.log("Formulario:", this.formulario_migra_manual.value);
+    console.log("Formulario:", this.formulario_registro_usuario.value);
 
     // Actualizar el modelo con los datos del formulario
-    this.migracion_manual = new miagra_manualModel(
-      this.formulario_migra_manual.value.txtcedula.toString(),
-      this.formulario_migra_manual.value.txttel.toString(),
-      this.formulario_migra_manual.value.txtcuenta.toString(),
-      this.formulario_migra_manual.value.txtemail.toString(),
+    this.registro_usuario = new resgistro_usuarioModel(
+      this.formulario_registro_usuario.value.txtnombre.toString(),
+      this.formulario_registro_usuario.value.txttel.toString(),
+      this.formulario_registro_usuario.value.txtemail.toString(),
+      this.formulario_registro_usuario.value.txtselecIdent.toString(),
+      this.formulario_registro_usuario.value.txtnumIdent.toString(),
+      this.formulario_registro_usuario.value.txtclave.toString(),
+
     );
 
     this.cargando = true; // Mostrar spinner
-    this.ConexionApiService.agregarMigraManual(this.migracion_manual).subscribe({
+    this.ConexionApiService.RegistroUsuario(this.registro_usuario).subscribe({
       next: (respuesta) => {
-        console.log('✅ migracion subida exitosamente:', respuesta);
+        console.log('✅ registro subida exitosamente:', respuesta);
         Swal.fire({
           icon: "success",
-          title: "✅ Migracion realizada con exito ",
+          title: "✅ Registro de usuario realizado con exito ",
           //text: ".",
           // footer: '<a href="#">Why do I have this issue?</a>'
           timer: 2100,
         });
-        // this.router.navigate(['/listaUsuarios']); // Redirigir tras éxito
+         this.router.navigate(['/migra_automatico']); // Redirigir tras éxito
       },
       error: (error) => {
         console.error('❌ ocurrio un error:', error.error.mensajeError);
@@ -96,25 +102,37 @@ export class MigraManualComponent implements OnInit {
     });
   }
 
-  validaciontel() {
-    const campo = this.formulario_migra_manual.get('txttel');
+  validacionNom() {
+    const campo = this.formulario_registro_usuario.get('txtnombre');
     if (campo && campo.invalid && campo.touched) {
 
       Swal.fire({
         icon: "info",
-        title: " Telefono es obligatorio",
+        title: " Nombre es obligatorio",
         text: "Campo obligatorio",
         // footer: '<a href="#">Why do I have this issue?</a>'
       });
     }
   }
-  validacionCuneta() {
-    const campo = this.formulario_migra_manual.get('txtcuenta');
+  validacionTipoident() {
+    const campo = this.formulario_registro_usuario.get('txtselecIdent');
     if (campo && campo.invalid && campo.touched) {
 
       Swal.fire({
         icon: "info",
-        title: " Numero de cuenta obligatorio",
+        title: " tipo de identificacion es obligatorio",
+        text: "Campo obligatorio",
+        // footer: '<a href="#">Why do I have this issue?</a>'
+      });
+    }
+  }
+  validaciontel() {
+    const campo = this.formulario_registro_usuario.get('txttel');
+    if (campo && campo.invalid && campo.touched) {
+
+      Swal.fire({
+        icon: "info",
+        title: " Numero de telefono obligatorio",
         text: "Campo obligatorio",
         // footer: '<a href="#">Why do I have this issue?</a>'
       });
@@ -122,7 +140,7 @@ export class MigraManualComponent implements OnInit {
   }
 
   validacionEmail() {
-    const campo = this.formulario_migra_manual.get('txtemail');
+    const campo = this.formulario_registro_usuario.get('txtemail');
     if (campo && campo.invalid && campo.touched) {
 
       Swal.fire({
@@ -134,19 +152,30 @@ export class MigraManualComponent implements OnInit {
     }
   }
   validacionCedula(): void {
-    const campo = this.formulario_migra_manual.get('txtcedula');
+    const campo = this.formulario_registro_usuario.get('txtnumIdent');
 
     if (campo && campo.invalid && campo.touched) {
       Swal.fire({
         icon: 'info',
-        title: 'Número de cédula es obligatorio',
+        title: 'Número de identificacion es obligatorio',
+        text: 'Campo obligatorio',
+      });
+    }
+  }
+  validacionClave(): void {
+    const campo = this.formulario_registro_usuario.get('txtclave');
+
+    if (campo && campo.invalid && campo.touched) {
+      Swal.fire({
+        icon: 'info',
+        title: 'clave es obligatoria',
         text: 'Campo obligatorio',
       });
     }
   }
 
   validarTodosCampo() {
-    if (this.formulario_migra_manual.invalid) {
+    if (this.formulario_registro_usuario.invalid) {
       //this.formulario.markAllAsTouched(); // ← Marca todos los campos para que muestren errores
       Swal.fire({
         icon: "info",

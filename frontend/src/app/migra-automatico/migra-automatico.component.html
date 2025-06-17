@@ -8,19 +8,15 @@
           para ejecutar el proceso de migración automática.
         </p>
         <div class="file-upload">
-          <label for="archivoExcel">📄 Cargar archivo CSV:</label>
+          <label for="archivoExcel">📄 Cargar archivo:</label>
           <input
             type="file"
             id="archivoExcel"
             (change)="onArchivoSeleccionado($event)"
-            accept=".csv"
+            accept="."
           />
-          <button
-            class="btn-procesar"
-            [disabled]="!archivoBase64"
-            (click)="subirArchivoExcel()"
-          >
-            Subir archivo
+          <button class="btn-procesar" (click)="subirArchivoExcel()">
+            Realizar Cargue
           </button>
         </div>
 
@@ -36,15 +32,19 @@
             <thead>
               <tr>
                 <th>id</th>
+                <th>tipo</th>
                 <th>estado</th>
                 <th colspan="3">Progreso</th>
-                <!-- Encabezado combinado -->
                 <th>fecha</th>
+                <th>Historial</th>
               </tr>
             </thead>
+
             <tbody>
               <tr *ngFor="let proceso of procesosPaginados">
                 <td>{{ proceso.idProceso }}</td>
+                <td>{{ proceso.tipo }}</td>
+                <!-- Nuevo valor -->
                 <td>{{ proceso.estado }}</td>
                 <td colspan="3">
                   <div class="barra-progreso">
@@ -72,8 +72,15 @@
                     {{ proceso.duplicados }} / {{ proceso.total }}
                   </small>
                 </td>
-
                 <td>{{ proceso.fecha }}</td>
+                <td>
+                  <button
+                    class="btn btn-secondary"
+                    (click)="verHistorial(proceso.idProceso)"
+                  >
+                    📋 Ver historial
+                  </button>
+                </td>
               </tr>
             </tbody>
           </table>
@@ -106,18 +113,54 @@
 
     <div class="admin-panel">
       <h3>Panel de Administrador</h3>
-      <button class="btn-ingresar" [routerLink]="['/migra_manual']">
+      <!-- <button class="btn-ingresar" [routerLink]="['/migra_manual']"> -->
+      <button class="btn-ingresar" (click)="exit1()">
         <i class="bi bi-journal-arrow-up"></i> <br />
         Ingresar migración manual
       </button>
+      <button class="btn btn-procesar" [routerLink]="'/registro_usuario'">
+        Registro de Usuario
+      </button>
+      <br />
       <button
         class="bi bi-door-open-fill"
         style="font-size: 3rem; border-radius: 10px"
+        (click)="exit()"
       ></button>
       <img
         src="https://www.iconarchive.com/download/i98238/dakirby309/simply-styled/Control-Panel.ico"
         alt=""
       />
+    </div>
+  </div>
+  <div class="modal" [ngClass]="{ mostrar: mostrarModal }">
+    <div class="modal-contenido">
+      <span class="cerrar" (click)="cerrarModal()">&times;</span>
+      <h3>Historial del Proceso #{{ procesoSeleccionado }}</h3>
+      <table class="tabla-estados">
+        <thead>
+          <tr>
+            <th>Fecha</th>
+            <th>Cliente</th>
+            <th>Identificación</th>
+            <th>Cuenta</th>
+            <th>Notas</th>
+            <th>Servicio</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let detalle of historialProceso">
+            <td>{{ detalle.fecha }}</td>
+            <td>{{ detalle.nombreCliente }}</td>
+            <td>
+              {{ detalle.tipoIdentificacion }} {{ detalle.identificacion }}
+            </td>
+            <td>{{ detalle.numeroCuenta }}</td>
+            <td>{{ detalle.notas }}</td>
+            <td>{{ detalle.tipoServicio }}</td>
+          </tr>
+        </tbody>
+      </table>
     </div>
   </div>
 </body>

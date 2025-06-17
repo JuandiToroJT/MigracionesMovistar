@@ -63,7 +63,9 @@ export class MigraAutomaticoComponent {
         ) {
           const todosFinalizados = this.listaProcesos.every(
             (proceso: any) =>
-              proceso.estado && proceso.estado.toLowerCase() === 'fin'
+              proceso.estado &&
+              (proceso.estado.toLowerCase() === 'fin' ||
+                proceso.estado.toLowerCase() === 'err')
           );
           if (todosFinalizados && this.intervalo) {
             clearInterval(this.intervalo);
@@ -90,7 +92,7 @@ export class MigraAutomaticoComponent {
   }
   intervalo: any;
   currentPage: number = 1;
-  itemsPerPage: number = 7;
+  itemsPerPage: number = 9;
 
   get procesosPaginados(): any[] {
     const start = (this.currentPage - 1) * this.itemsPerPage;
@@ -131,16 +133,8 @@ export class MigraAutomaticoComponent {
   }
 
   subirArchivoExcel() {
-    if (!this.archivoBase64 || !this.nombreArchivo) {
-      Swal.fire({
-        icon: 'warning',
-        title: '⚠️ Archivo no válido',
-        text: 'Selecciona un archivo válido antes de continuar.',
-      });
-      return;
-    }
-
-    const extension = this.nombreArchivo.split('.').pop()?.toLowerCase() || '';
+    const extension =
+      this.nombreArchivo.split('.').pop()?.toLowerCase() || null;
     const payload = {
       archivo: this.archivoBase64,
       formato: extension,
@@ -170,11 +164,66 @@ export class MigraAutomaticoComponent {
       },
     });
   }
+  mostrarModal: boolean = false;
+  procesoSeleccionado: number | null = null;
+  historialProceso: any[] = [];
+  verHistorial(idProceso: number) {
+    const url = `https://migracionproyectjt-d0bpe4g9d4eugzbc.canadacentral-01.azurewebsites.net/procesos/detalle?idProceso=${idProceso}`;
+    this.http.get<any[]>(url).subscribe({
+      next: (data) => {
+        this.historialProceso = data;
+        this.procesoSeleccionado = idProceso;
+        this.mostrarModal = true;
+      },
+      error: (err) => {
+        Swal.fire('Error', 'No se pudo cargar el historial.', 'error');
+      },
+    });
+  }
+
+  cerrarModal() {
+    this.mostrarModal = false;
+    this.procesoSeleccionado = null;
+    this.historialProceso = [];
+  }
 
   ngOnInit() {
     this.cargarListado();
     this.intervalo = setInterval(() => {
       this.cargarListado();
     }, 400);
+  }
+
+  exit(): void {
+    Swal.fire({
+      title: '¿Estás seguro de que deseas salir?',
+      text: 'Perderás los cambios no guardados.',
+      icon: 'warning',
+      showCancelButton: true,
+      confirmButtonColor: '#3085d6',
+      cancelButtonColor: '#d33',
+      confirmButtonText: 'Sí, salir',
+      cancelButtonText: 'Cancelar',
+    }).then((resultado) => {
+      if (resultado.isConfirmed) {
+        this.router.navigate(['/Login']);
+      }
+    });
+  }
+  exit1(): void {
+    Swal.fire({
+      title: '¿Estás seguro ingresar a formulario de migracion manual?',
+      text: 'Perderás los cambios no guardados.',
+      icon: 'warning',
+      showCancelButton: true,
+      confirmButtonColor: '#3085d6',
+      cancelButtonColor: '#d33',
+      confirmButtonText: 'Sí, salir',
+      cancelButtonText: 'Cancelar',
+    }).then((resultado) => {
+      if (resultado.isConfirmed) {
+        this.router.navigate(['/migra_manual']);
+      }
+    });
   }
 }

@@ -24,7 +24,7 @@ body{
     margin-left: 20%;
     background-color: rgb(238, 148, 31);
 }
-.container input{
+.container input, select{
     background-color: rgb(216, 210, 210);
 }
 .container i{
@@ -65,6 +65,13 @@ label{
 
     input:invalid + .error-message {
       display: block;
+    }
+select:required:invalid {
+      border-color: red;
+    }
+
+    select:required:valid {
+      border-color: green;
     }
 
 .spinner-container {
