@@ -10,6 +10,9 @@ import { MigraAutomaticoComponent } from './migra-automatico/migra-automatico.co
 
 import { FormsModule, ReactiveFormsModule } from '@angular/forms';
 import { RegistroUsuarioComponent } from './registro-usuario/registro-usuario.component';
+import { PanelProcessComponent } from './panel-process/panel-process.component';
+import { NgxPaginationModule } from 'ngx-pagination';
+import { NgxEchartsModule } from 'ngx-echarts';
 
 
 @NgModule({
@@ -18,15 +21,19 @@ import { RegistroUsuarioComponent } from './registro-usuario/registro-usuario.co
     MigraManualComponent,
     LoginComponent,
     MigraAutomaticoComponent,
-    RegistroUsuarioComponent
+    RegistroUsuarioComponent,
+    PanelProcessComponent,
   ],
   imports: [
     BrowserModule,
     AppRoutingModule,
     HttpClientModule,
-    ReactiveFormsModule  // ✅ Agrega esto
-
-
+    ReactiveFormsModule, // ✅ Agrega esto
+    NgxPaginationModule,
+    FormsModule,
+     NgxEchartsModule.forRoot({
+      echarts: () => import('echarts')
+    }),
   ],
   providers: [
     HttpClient

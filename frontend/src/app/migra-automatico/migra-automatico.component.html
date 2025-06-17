@@ -13,12 +13,20 @@
           <button class="btn-procesar" [disabled]="!archivoBase64" (click)="subirArchivoExcel()">
             Subir archivo
           </button>
+          <div *ngIf="cargando1" class="spinner-container">
+                <div class="spinner"></div>
+                <p>Cargando, por favor espere...</p>
+            </div>
         </div>
 
         <div class="file-upload">
           <button class="btn-procesar" (click)="procesarMigracion()">
             Procesar migración automática
           </button>
+           <div *ngIf="cargando" class="spinner-container">
+                <div class="spinner"></div>
+                <p>Cargando, por favor espere...</p>
+            </div>
         </div>
 
         <h3 class="titleTable">Reporte de Estados</h3>
@@ -86,6 +94,8 @@
         Ingresar migración manual
       </button>
       <button class="btn btn-procesar" [routerLink]="('/registro_usuario')">Registro de Usuario</button>
+      <br>
+      <button class="btn btn-procesar" [routerLink]="('/panel_process')">Panel de procesos</button>
       <br>
       <button class="bi bi-door-open-fill" style="font-size: 3rem; border-radius: 10px" (click)="exit()"></button>
       <img src="https://www.iconarchive.com/download/i98238/dakirby309/simply-styled/Control-Panel.ico" alt="" />

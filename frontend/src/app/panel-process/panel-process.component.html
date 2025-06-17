@@ -1,0 +1,52 @@
+<body>
+    <div class="table-container">
+              <button class="btn btn-primary" [routerLink]="('/migra_automatico')">Regresar</button>
+
+        <hr>
+                <h3 class="titleTable">Panel de Procesos</h3>
+
+        <!-- <input type="text" [(ngModel)]="busqueda" (ngModelChange)="buscar()" /> -->
+        <table class="table table-striped">
+            <thead>
+                <tr>
+                    <th>id</th>
+                    <th>tipo</th>
+                    <th>estado</th>
+                    <!-- Encabezado combinado -->
+                    <th>total</th>
+                    <th>exitosos</th>
+                    <th>errores</th>
+                    <th>duplicados</th>
+                    <th>fecha</th>
+                    <th>notas</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr *ngFor="let proceso of listaProcesos | paginate: { itemsPerPage: itemsPerPage, currentPage: page }">
+                    <td>{{ proceso.idProceso }}</td>
+                    <td>{{ proceso.tipo }}</td>
+                    <td>{{ proceso.estado}} </td>
+                    <td>{{ proceso.total }}</td>
+                    <td>{{ proceso.exitosos }}</td>
+                    <td>{{ proceso.errores }}</td>
+                    <td>{{ proceso.duplicados }}</td>
+                    <td>{{ proceso.fecha }}</td>
+                    <td>{{ proceso.notas }}</td>
+                </tr>
+            </tbody>
+        </table>
+        <br>
+        <div class="d-flex justify-content-end">
+            <pagination-controls (pageChange)="page = $event" previousLabel="anterior"
+                nextLabel="siguiente"></pagination-controls>
+        </div>
+    </div>
+    <h3 class="titleGafico">grafico Panel de Procesos</h3>
+    <hr>
+<echarts
+  #chart
+  *ngIf="option"
+  [options]="option"
+  style="height: 400px; width: 100%; display: block;">
+</echarts>
+</body>

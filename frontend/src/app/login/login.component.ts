@@ -57,12 +57,14 @@ export class LoginComponent implements OnInit {
     // Redirigir al home
     this.router.navigate(['/migra_automatico']);
   },
-  error: () => {
+  error: (error) => {
     // Mensaje de error
+    console.error('❌ ocurrio un error:', error.error.mensajeError);
+
     Swal.fire({
       icon: "error",
-      title: "Datos Incorrectos",
-      text: "Usuario o contraseña incorrectos!",
+      title: "❌ ocurrio un error:" + error.error.mensajeError ,
+      // text: "Usuario o contraseña incorrectos!",
     });
   }
 });

@@ -4,6 +4,7 @@ import { Router } from '@angular/router';
 import { miagra_manualModel } from './migra_manual.model';
 import { LoginModel } from './login.model';
 import { resgistro_usuarioModel } from './registro_usuario.model';
+import { panel_procesosModel } from './panel_procesos.model';
 
 
 @Injectable({
@@ -39,5 +40,7 @@ export class ConexionApiService {
     return this.http.post<string>(`${this.BASE_URL_GET}/usuario/registrar`, registro_usuario)
      
   }
-
+obtenerProcesosPanel() {
+    return this.http.get(this.BASE_URL_GET + '/procesos' );
+  }
 }

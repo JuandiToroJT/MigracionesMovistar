@@ -67,8 +67,8 @@ export class RegistroUsuarioComponent implements OnInit {
     // Actualizar el modelo con los datos del formulario
     this.registro_usuario = new resgistro_usuarioModel(
       this.formulario_registro_usuario.value.txtnombre.toString(),
+            this.formulario_registro_usuario.value.txtemail.toString(),
       this.formulario_registro_usuario.value.txttel.toString(),
-      this.formulario_registro_usuario.value.txtemail.toString(),
       this.formulario_registro_usuario.value.txtselecIdent.toString(),
       this.formulario_registro_usuario.value.txtnumIdent.toString(),
       this.formulario_registro_usuario.value.txtclave.toString(),

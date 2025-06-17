@@ -14,6 +14,10 @@ export class MigraAutomaticoComponent {
   public formulario: FormGroup;
 
   listaProcesos: any;
+  cargando: boolean = false;
+    cargando1: boolean = false;
+
+
 
   constructor(
     private ConexionApiService: ConexionApiService,
@@ -27,6 +31,7 @@ export class MigraAutomaticoComponent {
   procesarMigracion() {
     const url =
       'https://migracionproyectjt-d0bpe4g9d4eugzbc.canadacentral-01.azurewebsites.net/migraciones/123/masiva'; // Ajusta el host si es necesario
+    this.cargando = true; // Mostrar spinner
 
     this.ConexionApiService.procesarMigracionMasiva().subscribe({
       next: (respuesta) => {
@@ -40,6 +45,8 @@ export class MigraAutomaticoComponent {
           // footer: '<a href="#">Why do I have this issue?</a>'
           timer: 2100,
         });
+        this.cargando = false; // Ocultar spinner en cualquier caso 
+
       },
       error: (error) => {
         Swal.fire({
@@ -49,6 +56,8 @@ export class MigraAutomaticoComponent {
           // footer: '<a href="#">Why do I have this issue?</a>'
           timer: 2100,
         });
+        this.cargando = false; // Ocultar spinner en cualquier caso 
+
       },
     });
   }
@@ -147,6 +156,7 @@ export class MigraAutomaticoComponent {
     };
 
     const url = `https://migracionproyectjt-d0bpe4g9d4eugzbc.canadacentral-01.azurewebsites.net/cargue/${this.usuario}/masivo`;
+    this.cargando1 = true; // Mostrar spinner
 
     this.http.post(url, payload).subscribe({
       next: () => {
@@ -158,6 +168,8 @@ export class MigraAutomaticoComponent {
           title: '✅ Archivo enviado correctamente',
           timer: 2000,
         });
+        this.cargando1 = false; // Ocultar spinner en cualquier caso 
+
         this.archivoBase64 = null;
         this.nombreArchivo = '';
       },
@@ -167,6 +179,8 @@ export class MigraAutomaticoComponent {
           title: '❌ Error al subir el archivo',
           text: error.error?.mensajeError || 'Ocurrió un error inesperado.',
         });
+        this.cargando1 = false; // Ocultar spinner en cualquier caso 
+
       },
     });
   }
@@ -179,35 +193,35 @@ export class MigraAutomaticoComponent {
   }
 
   exit(): void {
-  Swal.fire({
-    title: '¿Estás seguro de que deseas salir?',
-    text: 'Perderás los cambios no guardados.',
-    icon: 'warning',
-    showCancelButton: true,
-    confirmButtonColor: '#3085d6',
-    cancelButtonColor: '#d33',
-    confirmButtonText: 'Sí, salir',
-    cancelButtonText: 'Cancelar'
-  }).then((resultado) => {
-    if (resultado.isConfirmed) {
-      this.router.navigate(['/Login']);
-    }
-  });
-}
-exit1(): void {
-  Swal.fire({
-    title: '¿Estás seguro ingresar a formulario de migracion manual?',
-    text: 'Perderás los cambios no guardados.',
-    icon: 'warning',
-    showCancelButton: true,
-    confirmButtonColor: '#3085d6',
-    cancelButtonColor: '#d33',
-    confirmButtonText: 'Sí, salir',
-    cancelButtonText: 'Cancelar'
-  }).then((resultado) => {
-    if (resultado.isConfirmed) {
-      this.router.navigate(['/migra_manual']);
-    }
-  });
-}
+    Swal.fire({
+      title: '¿Estás seguro de que deseas salir?',
+      text: 'Perderás los cambios no guardados.',
+      icon: 'warning',
+      showCancelButton: true,
+      confirmButtonColor: '#3085d6',
+      cancelButtonColor: '#d33',
+      confirmButtonText: 'Sí, salir',
+      cancelButtonText: 'Cancelar'
+    }).then((resultado) => {
+      if (resultado.isConfirmed) {
+        this.router.navigate(['/Login']);
+      }
+    });
+  }
+  exit1(): void {
+    Swal.fire({
+      title: '¿Estás seguro ingresar a formulario de migracion manual?',
+      text: 'Perderás los cambios no guardados.',
+      icon: 'warning',
+      showCancelButton: true,
+      confirmButtonColor: '#3085d6',
+      cancelButtonColor: '#d33',
+      confirmButtonText: 'Sí, salir',
+      cancelButtonText: 'Cancelar'
+    }).then((resultado) => {
+      if (resultado.isConfirmed) {
+        this.router.navigate(['/migra_manual']);
+      }
+    });
+  }
 }
