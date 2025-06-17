@@ -9,17 +9,8 @@
         </p>
         <div class="file-upload">
           <label for="archivoExcel">📄 Cargar archivo CSV:</label>
-          <input
-            type="file"
-            id="archivoExcel"
-            (change)="onArchivoSeleccionado($event)"
-            accept=".csv"
-          />
-          <button
-            class="btn-procesar"
-            [disabled]="!archivoBase64"
-            (click)="subirArchivoExcel()"
-          >
+          <input type="file" id="archivoExcel" (change)="onArchivoSeleccionado($event)" accept=".csv" />
+          <button class="btn-procesar" [disabled]="!archivoBase64" (click)="subirArchivoExcel()">
             Subir archivo
           </button>
         </div>
@@ -48,24 +39,15 @@
                 <td>{{ proceso.estado }}</td>
                 <td colspan="3">
                   <div class="barra-progreso">
-                    <div
-                      class="exito"
-                      [style.width.%]="
+                    <div class="exito" [style.width.%]="
                         getPorcentaje(proceso.exitosos, proceso.total)
-                      "
-                    ></div>
-                    <div
-                      class="error"
-                      [style.width.%]="
+                      "></div>
+                    <div class="error" [style.width.%]="
                         getPorcentaje(proceso.errores, proceso.total)
-                      "
-                    ></div>
-                    <div
-                      class="duplicado"
-                      [style.width.%]="
+                      "></div>
+                    <div class="duplicado" [style.width.%]="
                         getPorcentaje(proceso.duplicados, proceso.total)
-                      "
-                    ></div>
+                      "></div>
                   </div>
                   <small>
                     ✅ {{ proceso.exitosos }} | ❌ {{ proceso.errores }} | 🟡
@@ -79,25 +61,16 @@
           </table>
         </div>
         <div class="paginacion">
-          <button
-            (click)="cambiarPagina(currentPage - 1)"
-            [disabled]="currentPage === 1"
-          >
+          <button (click)="cambiarPagina(currentPage - 1)" [disabled]="currentPage === 1">
             &lt;
           </button>
 
-          <button
-            *ngFor="let pagina of totalPaginas"
-            [class.activa]="pagina === currentPage"
-            (click)="cambiarPagina(pagina)"
-          >
+          <button *ngFor="let pagina of totalPaginas" [class.activa]="pagina === currentPage"
+            (click)="cambiarPagina(pagina)">
             {{ pagina }}
           </button>
 
-          <button
-            (click)="cambiarPagina(currentPage + 1)"
-            [disabled]="currentPage === totalPaginas.length"
-          >
+          <button (click)="cambiarPagina(currentPage + 1)" [disabled]="currentPage === totalPaginas.length">
             &gt;
           </button>
         </div>
@@ -106,18 +79,16 @@
 
     <div class="admin-panel">
       <h3>Panel de Administrador</h3>
-      <button class="btn-ingresar" [routerLink]="['/migra_manual']">
+      <!-- <button class="btn-ingresar" [routerLink]="['/migra_manual']"> -->
+      <button class="btn-ingresar" (click)="exit1()">
+
         <i class="bi bi-journal-arrow-up"></i> <br />
         Ingresar migración manual
       </button>
-      <button
-        class="bi bi-door-open-fill"
-        style="font-size: 3rem; border-radius: 10px"
-      ></button>
-      <img
-        src="https://www.iconarchive.com/download/i98238/dakirby309/simply-styled/Control-Panel.ico"
-        alt=""
-      />
+      <button class="btn btn-procesar" [routerLink]="('/registro_usuario')">Registro de Usuario</button>
+      <br>
+      <button class="bi bi-door-open-fill" style="font-size: 3rem; border-radius: 10px" (click)="exit()"></button>
+      <img src="https://www.iconarchive.com/download/i98238/dakirby309/simply-styled/Control-Panel.ico" alt="" />
     </div>
   </div>
 </body>

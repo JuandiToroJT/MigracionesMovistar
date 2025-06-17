@@ -1,48 +1,86 @@
 <body>
     <div id="exit">
-        <button class="bi bi-door-open-fill" style="font-size: 3rem;" (click)="exit()"></button>
+        <div>
+            <button class="bi bi-door-open-fill" style="font-size: 3rem;" (click)="exit()"></button>
+        </div>
+        <br>
+        <div>
+            <button class="btn btn-primary" [routerLink]="('/migra_automatico')">Volver</button>
+        </div>
+
     </div>
+
     <div class="container">
-        <h2>Migracion manual de usuario</h2>
+        <h2>Formulario de Registro de usuario</h2>
         <hr>
-        <form [formGroup]="formulario_migra_manual" (ngSubmit)="onSumit()">
-             <div *ngIf="cargando" class="spinner-container">
+        <form [formGroup]="formulario_registro_usuario" (ngSubmit)="onSumit()">
+            <div *ngIf="cargando" class="spinner-container">
                 <div class="spinner"></div>
                 <p>Cargando, por favor espere...</p>
             </div>
             <div class="mb-3">
-                <label for="Numtel" class="form-label">Número de telefono</label>
+                <label for="nombre" class="form-label">Nombre completo</label>
                 <div style="display: flex;">
-                    <input formControlName="txttel" type="number" class="form-control" id="Numtel"
-                        (blur)="validaciontel()" placeholder="Ingrese Número telefonico" required>
-                    <i class="bi bi-phone-flip" style="font-size: 2rem; color: black;"></i>
+                    <input formControlName="txtnombre" type="text" class="form-control" id="nombre"
+                        (blur)="validacionNom()" placeholder="Ingrese Nombre completo"
+                        [(ngModel)]="registro_usuario.nombre" required>
+                    <i  class="bi bi-person-badge-fill" style="font-size: 2rem; color: black;"></i>
                 </div>
 
                 <!-- <div id="emailHelp" class="form-text">We'll never share your email with anyone else.</div> -->
             </div>
             <div class="mb-3">
-                <label for="numCuenta" class="form-label">Número de cuenta</label>
-                <div style="display: flex;">
-                    <input formControlName="txtcuenta" type="text" class="form-control" id="numCuenta"
-                        (blur)="validacionCuneta()" placeholder="Digite Número de la cuenta" required>
-                    <i class="bi bi-postcard-fill" style="font-size: 2rem; color: black;"></i>
-                </div>
-            </div>
-            <div class="mb-3">
                 <label for="email" class="form-label">Correo Electrónico</label>
                 <div style="display: flex;">
                     <input formControlName="txtemail" type="email" class="form-control" id="email"
-                        (blur)="validacionEmail()" placeholder="Ingrese correo electrónico" required>
-                    <i class="bi bi-voicemail" style="font-size: 2rem; color: black;"></i>
+                        (blur)="validacionEmail()" placeholder="Ingrese correo electrónico"
+                        [(ngModel)]="registro_usuario.correo" required>
+                    <i class="bi bi-envelope-open-fill" style="font-size: 2rem; color: black;"></i>
+                </div>
+            </div>
+            <div class="mb-3">
+                <label for="Numtel" class="form-label">Número de telefono</label>
+                <div style="display: flex;">
+                    <input formControlName="txttel" type="number" class="form-control" id="Numtel"
+                        (blur)="validaciontel()" placeholder="Ingrese Número telefonico"
+                        [(ngModel)]="registro_usuario.celular" required>
+                    <i class="bi bi-phone-vibrate-fill" style="font-size: 2rem; color: black;"></i>
+                </div>
+
+                <!-- <div id="emailHelp" class="form-text">We'll never share your email with anyone else.</div> -->
+            </div>
+            <div class="mb-3">
+                <label for="selcttipo" class="form-label">Tipo de identificacion</label>
+                <div style="display: flex;">
+                    <select formControlName="txtselecIdent" type="text" class="form-control" id="selcttipo"
+                        (blur)="validacionTipoident()" placeholder="selecione el tipo de identificacion"
+                        [(ngModel)]="registro_usuario.tipoIdentificacion" required>
+                        <option value="">Seleccione</option>
+                        <option value="Cedula de ciudadania">Cedula de ciudadania</option>
+                        <option value="Cedula de extrangeria">Cedula de extrangeria</option>
+
+                    </select>
+                    <i class="bi bi-postcard-fill" style="font-size: 2rem; color: black;"></i>
+                </div>
+            </div>
+
+            <div class="mb-3">
+                <label for="nunident" class="form-label">Numero de identificacion</label>
+                <div style="display: flex;">
+                    <input formControlName="txtnumIdent" type="number" class="form-control" id="nunident"
+                        (blur)="validacionCedula()" placeholder="Ingrese el numero de identificacion"
+                        [(ngModel)]="registro_usuario.identificacion" required>
+                    <i class="bi bi-person-vcard-fill" style="font-size: 2rem; color: black;"></i>
 
                 </div>
             </div>
             <div class="mb-3">
-                <label for="CedulaTitular" class="form-label">Cédula del titular</label>
+                <label for="clave" class="form-label">Clave</label>
                 <div style="display: flex;">
-                    <input formControlName="txtcedula" type="number" class="form-control" id="CedulaTitular"
-                        (blur)="validacionCedula()" placeholder="Ingrese la cédula de titular" required>
-                    <i class="bi bi-person-vcard-fill" style="font-size: 2rem; color: black;"></i>
+                    <input formControlName="txtclave" type="password" class="form-control" id="clave"
+                        (blur)="validacionClave()" placeholder="Ingrese la clave" [(ngModel)]="registro_usuario.clave"
+                        required>
+                    <i class="bi bi-shield-lock-fill" style="font-size: 2rem; color: black;"></i>
 
                 </div>
             </div>
@@ -51,8 +89,8 @@
                 <input type="checkbox" class="form-check-input" id="exampleCheck1">
                 <label class="form-check-label" for="exampleCheck1">Check me out</label>
             </div> -->
-           
-            <button type="submit" class="btn btn-primary">Enviar Solicitud</button>
+
+            <button type="submit" class="btn btn-primary">Enviar Registro</button>
         </form>
     </div>
 

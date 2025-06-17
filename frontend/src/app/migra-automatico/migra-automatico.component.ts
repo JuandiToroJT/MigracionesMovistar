@@ -177,4 +177,37 @@ export class MigraAutomaticoComponent {
       this.cargarListado();
     }, 400);
   }
+
+  exit(): void {
+  Swal.fire({
+    title: '¿Estás seguro de que deseas salir?',
+    text: 'Perderás los cambios no guardados.',
+    icon: 'warning',
+    showCancelButton: true,
+    confirmButtonColor: '#3085d6',
+    cancelButtonColor: '#d33',
+    confirmButtonText: 'Sí, salir',
+    cancelButtonText: 'Cancelar'
+  }).then((resultado) => {
+    if (resultado.isConfirmed) {
+      this.router.navigate(['/Login']);
+    }
+  });
+}
+exit1(): void {
+  Swal.fire({
+    title: '¿Estás seguro ingresar a formulario de migracion manual?',
+    text: 'Perderás los cambios no guardados.',
+    icon: 'warning',
+    showCancelButton: true,
+    confirmButtonColor: '#3085d6',
+    cancelButtonColor: '#d33',
+    confirmButtonText: 'Sí, salir',
+    cancelButtonText: 'Cancelar'
+  }).then((resultado) => {
+    if (resultado.isConfirmed) {
+      this.router.navigate(['/migra_manual']);
+    }
+  });
+}
 }
